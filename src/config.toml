@@ -1,0 +1,46 @@
+# 紅白予測システム 設定ファイル
+# =====================================
+
+[paths]
+data_dir = "data"
+ref_dir = "ref"
+
+[data_collection]
+# データ収集対象年
+target_years = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+
+# Step2: 週次データ取得の曲数制限（テスト用）
+# 全データ取得は数時間かかるため、テスト時は100程度に設定
+top_n_songs = 100
+
+[kouhaku]
+# 紅白歌合戦の年と回数の対応
+[kouhaku.target_years]
+2020 = 71
+2021 = 72
+2022 = 73
+2023 = 74
+2024 = 75
+
+[learning_data]
+# Spotifyデータ欠損時のデフォルト値
+[learning_data.spotify_defaults]
+weeks_on_chart = 0
+total_streams = 0
+best_rank = 999
+avg_rank = 999
+top10_weeks = 0
+top1_weeks = 0
+
+[network]
+# HTTPリクエスト設定
+request_timeout = 30
+request_interval = 2
+
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+[network.urls]
+wikipedia_api = "https://ja.wikipedia.org/w/api.php"
+kworb_base = "https://kworb.net/spotify"
+kworb_jp_daily = "https://kworb.net/spotify/country/jp_daily.html"
+default_debug_url = "https://kworb.net/spotify/artist/4QvgGvpgzgyUOo8Yp8LDm9.html"

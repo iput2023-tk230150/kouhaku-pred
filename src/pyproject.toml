@@ -1,0 +1,26 @@
+[project]
+name = "kouhaku-predictor"
+version = "0.1.0"
+description = "NHK紅白歌合戦 出演者予測システム"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.0.0",
+    "pykakasi>=2.3.0",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+# メインパイプライン
+kouhaku = "main:main"
+
+# 個別ステップ（互換性維持）
+step1 = "scripts.step1_get_song_list:main"
+step2 = "scripts.step2_get_weekly_data:main"
+step3 = "scripts.step3_get_kouhaku_artists:main"
+step4 = "scripts.step4_create_learning_data:main"
+
+# 補助ツール
+kouhaku-mapper = "ref.create_mapping:main"
+debug-kworb = "ref.debug_kworb:main"
