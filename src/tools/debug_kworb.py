@@ -5,15 +5,12 @@ kworb.net ページ構造確認デバッグツール
 スクレイパーの調整に使用するツール
 
 使い方:
-    cd kouhaku-pred
-    uv run python ref/debug_kworb.py [URL]
+    cd kouhaku-pred/src
+    uv run python -m tools.debug_kworb [URL]
 """
 
 import sys
 from pathlib import Path
-
-# srcディレクトリをパスに追加
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import requests
 from bs4 import BeautifulSoup
@@ -93,7 +90,7 @@ def analyze_page(url: str):
         print(f"総行数: {len(rows)}")
 
     # HTMLを保存（デバッグ用）
-    project_root = Path(__file__).parent.parent
+    project_root = Path(__file__).parent.parent.parent
     debug_file = project_root / "debug_page_structure.html"
     with open(debug_file, "w", encoding="utf-8") as f:
         f.write(resp.text)
