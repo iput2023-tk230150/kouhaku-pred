@@ -19,7 +19,7 @@ import pandas as pd
 from itertools import product
 from typing import Any
 
-from kouhaku.pipeline import DataPipeline, load_config
+from core.pipeline import DataPipeline, load_config
 
 
 def calc_past_appearances(group):

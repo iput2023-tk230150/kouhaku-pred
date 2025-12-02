@@ -24,7 +24,7 @@ import re
 import time
 from typing import Any
 
-from kouhaku.pipeline import DataPipeline, load_config
+from core.pipeline import DataPipeline, load_config
 
 
 def parse_jp_value(value: str) -> tuple[int | None, int | None]:

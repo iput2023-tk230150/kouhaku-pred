@@ -42,5 +42,5 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 [network.urls]
 wikipedia_api = "https://ja.wikipedia.org/w/api.php"
 kworb_base = "https://kworb.net/spotify"
-kworb_jp_daily = "https://kworb.net/spotify/country/jp_daily.html"
+kworb_jp_daily = "https://kworb.net/spotify/country/jp_daily_totals.html"
 default_debug_url = "https://kworb.net/spotify/artist/4QvgGvpgzgyUOo8Yp8LDm9.html"

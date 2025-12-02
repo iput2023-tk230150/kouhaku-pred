@@ -1,0 +1,32 @@
+# 改行コードの自動変換設定
+# Windowsではチェックアウト時にCRLF、コミット時にLFに変換
+
+# テキストファイルのデフォルト
+* text=auto
+
+# Python ファイルは常にLF
+*.py text eol=lf
+
+# 設定ファイル
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+
+# Markdown/テキスト
+*.md text eol=lf
+*.txt text eol=lf
+
+# シェルスクリプト
+*.sh text eol=lf
+
+# バッチファイルはCRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# バイナリファイル（変換しない）
+*.csv binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary

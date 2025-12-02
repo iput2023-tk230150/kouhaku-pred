@@ -15,12 +15,12 @@ dependencies = [
 # メインパイプライン
 kouhaku = "main:main"
 
-# 個別ステップ（互換性維持）
-step1 = "scripts.step1_get_song_list:main"
-step2 = "scripts.step2_get_weekly_data:main"
-step3 = "scripts.step3_get_kouhaku_artists:main"
-step4 = "scripts.step4_create_learning_data:main"
+# 個別ステップ
+step1 = "collectors.step1_get_song_list:main"
+step2 = "collectors.step2_get_weekly_data:main"
+step3 = "collectors.step3_get_kouhaku_artists:main"
+step4 = "collectors.step4_create_learning_data:main"
 
-# 補助ツール
-kouhaku-mapper = "ref.create_mapping:main"
-debug-kworb = "ref.debug_kworb:main"
+# 補助ツールはref/ディレクトリから直接実行:
+#   uv run python ref/create_mapping.py
+#   uv run python ref/debug_kworb.py [URL]

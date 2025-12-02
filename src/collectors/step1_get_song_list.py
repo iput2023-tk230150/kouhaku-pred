@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 import re
 from typing import Any
 
-from kouhaku.pipeline import DataPipeline, load_config
+from core.pipeline import DataPipeline, load_config
 
 
 def clean_number(value: str) -> int:

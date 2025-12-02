@@ -15,11 +15,11 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from kouhaku.pipeline import load_config
-from scripts.step1_get_song_list import Step1Pipeline
-from scripts.step2_get_weekly_data import Step2Pipeline
-from scripts.step3_get_kouhaku_artists import Step3Pipeline
-from scripts.step4_create_learning_data import Step4Pipeline
+from core.pipeline import load_config
+from collectors.step1_get_song_list import Step1Pipeline
+from collectors.step2_get_weekly_data import Step2Pipeline
+from collectors.step3_get_kouhaku_artists import Step3Pipeline
+from collectors.step4_create_learning_data import Step4Pipeline
 
 
 # パイプライン定義

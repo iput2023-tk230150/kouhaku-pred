@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 import time
 from typing import Any
 
-from kouhaku.pipeline import DataPipeline, load_config
+from core.pipeline import DataPipeline, load_config
 
 
 class Step3Pipeline(DataPipeline):
