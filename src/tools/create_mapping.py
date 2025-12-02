@@ -52,8 +52,12 @@ def main():
     print(f"\nSpotifyアーティスト数: {len(spotify_artists)}")
     print(f"紅白アーティスト数: {len(kouhaku_artists)}")
 
+    # 出力ディレクトリを作成
+    output_dir = project_root / "data" / "mapping"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     # 手動マッピングを読み込み
-    manual_count = mapper.load_manual_mapping(str(project_root / "manual_mapping.csv"))
+    manual_count = mapper.load_manual_mapping(str(output_dir / "manual_mapping.csv"))
     if manual_count > 0:
         print(f"手動マッピング読み込み: {manual_count}件")
 
@@ -69,7 +73,7 @@ def main():
     )
 
     # 結果を保存
-    mapper.save_results(matched, similar_candidates, unmatched, str(project_root))
+    mapper.save_results(matched, similar_candidates, unmatched, str(output_dir))
 
     # サマリーを表示
     mapper.print_summary(matched, similar_candidates, unmatched, len(kouhaku_artists))

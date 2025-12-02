@@ -61,6 +61,8 @@ notebooks/*.ipynb
 *.key
 *.pem
 credentials.json
+.cache                       # Spotify APIトークンキャッシュ
+src/.cache                   # Spotify APIトークンキャッシュ（src内）
 manual_mapping.csv           # 手動マッピングは個人環境依存のため
 artist_name_mapping.csv      # 生成ファイル
 artist_name_mapping_draft.csv
@@ -94,6 +96,3 @@ dmypy.json
 
 # Nextcloud（個人環境）
 .sync-exclude.lst
-
-# User Setting
-data

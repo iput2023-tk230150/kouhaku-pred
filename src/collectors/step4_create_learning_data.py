@@ -7,7 +7,7 @@ Step 4: 学習データ作成スクリプト
 入力:
 - data/jp_yearly_stats.csv: Spotify年別データ
 - data/kouhaku_artists.csv: 紅白出場者リスト
-- artist_name_mapping.csv: 表記揺れ対応表（オプション）
+- data/mapping/final_mapping.csv: 紅白⇔Spotify表記揺れ対応表（オプション）
 
 出力:
 - data/learning_data.csv: 学習データ
@@ -108,16 +108,18 @@ class Step4Pipeline(DataPipeline):
         # ========== [2] アーティスト名の正規化 ==========
         print("\n[2] アーティスト名の正規化")
 
-        # 表記揺れ対応表を読み込み
-        mapping_file = self.data_dir.parent / "artist_name_mapping.csv"
+        # 表記揺れ対応表を読み込み（Spotify API で作成したマッピング）
+        mapping_file = self.data_dir / "mapping" / "final_mapping.csv"
         try:
             df_mapping = pd.read_csv(mapping_file)
             name_mapping = dict(
                 zip(df_mapping["kouhaku_name"], df_mapping["spotify_name"])
             )
-            print(f"  表記揺れ対応表: {len(name_mapping)}件読み込み")
+            print(
+                f"  表記揺れ対応表: {len(name_mapping)}件読み込み（{mapping_file.name}）"
+            )
         except FileNotFoundError:
-            print("  警告: artist_name_mapping.csv が見つかりません")
+            print(f"  警告: {mapping_file} が見つかりません")
             print("  表記揺れが解決できない可能性があります")
             name_mapping = {}
 
