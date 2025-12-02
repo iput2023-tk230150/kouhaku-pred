@@ -36,7 +36,6 @@ env/
 *~
 
 # データファイル（大容量のため除外）
-data
 data/*.csv
 data/*.json
 data/*.html
