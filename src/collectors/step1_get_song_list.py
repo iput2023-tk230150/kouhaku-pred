@@ -22,7 +22,7 @@ def clean_number(value: str) -> int:
     """数値文字列をintに変換"""
     if not value:
         return 0
-    cleaned = re.sub(r'[^\d]', '', str(value))
+    cleaned = re.sub(r"[^\d]", "", str(value))
     return int(cleaned) if cleaned else 0
 
 
@@ -31,14 +31,12 @@ class Step1Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
-        self.url = config['network']['urls']['kworb_jp_daily']
-        self.headers = {
-            'User-Agent': config['network']['user_agent']
-        }
-        self.timeout = config['network']['request_timeout']
+        self.url = config["network"]["urls"]["kworb_jp_daily"]
+        self.headers = {"User-Agent": config["network"]["user_agent"]}
+        self.timeout = config["network"]["request_timeout"]
 
     def get_output_files(self) -> list[Path]:
-        return [self.data_dir / 'jp_songs_list.csv']
+        return [self.data_dir / "jp_songs_list.csv"]
 
     def fetch_song_list(self) -> list[dict]:
         """
@@ -49,34 +47,34 @@ class Step1Pipeline(DataPipeline):
         """
         print(f"取得中: {self.url}")
         resp = requests.get(self.url, headers=self.headers, timeout=self.timeout)
-        resp.encoding = 'utf-8'
+        resp.encoding = "utf-8"
         print(f"ステータス: {resp.status_code}")
 
         if resp.status_code != 200:
             print("ページ取得失敗")
             return []
 
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        table = soup.find('table')
+        soup = BeautifulSoup(resp.text, "html.parser")
+        table = soup.find("table")
 
         if not table:
             print("テーブルが見つかりません")
             return []
 
-        rows = table.find_all('tr')[1:]  # ヘッダースキップ
+        rows = table.find_all("tr")[1:]  # ヘッダースキップ
         print(f"総行数: {len(rows)}")
 
         songs = []
 
         for row in rows:
-            cells = row.find_all('td')
+            cells = row.find_all("td")
             if len(cells) < 7:
                 continue
 
             try:
                 # Cell 0: アーティスト-曲名（リンク付き）
                 cell0 = cells[0]
-                links = cell0.find_all('a')
+                links = cell0.find_all("a")
 
                 if len(links) < 2:
                     continue
@@ -88,14 +86,14 @@ class Step1Pipeline(DataPipeline):
                 title = track_link.get_text(strip=True)
 
                 # Track ID抽出: ../track/XXXXX.html -> XXXXX
-                track_href = track_link.get('href', '')
-                track_id_match = re.search(r'/track/([^.]+)\.html', track_href)
-                track_id = track_id_match.group(1) if track_id_match else ''
+                track_href = track_link.get("href", "")
+                track_id_match = re.search(r"/track/([^.]+)\.html", track_href)
+                track_id = track_id_match.group(1) if track_id_match else ""
 
                 # Artist ID抽出
-                artist_href = artist_link.get('href', '')
-                artist_id_match = re.search(r'/artist/([^.]+)\.html', artist_href)
-                artist_id = artist_id_match.group(1) if artist_id_match else ''
+                artist_href = artist_link.get("href", "")
+                artist_id_match = re.search(r"/artist/([^.]+)\.html", artist_href)
+                artist_id = artist_id_match.group(1) if artist_id_match else ""
 
                 # その他のセル
                 days = clean_number(cells[1].get_text(strip=True))
@@ -104,17 +102,19 @@ class Step1Pipeline(DataPipeline):
                 pk_streams = clean_number(cells[5].get_text(strip=True))
                 total = clean_number(cells[6].get_text(strip=True))
 
-                songs.append({
-                    'track_id': track_id,
-                    'artist_id': artist_id,
-                    'artist': artist,
-                    'title': title,
-                    'days': days,
-                    't10': t10,
-                    'peak': peak,
-                    'pk_streams': pk_streams,
-                    'total': total,
-                })
+                songs.append(
+                    {
+                        "track_id": track_id,
+                        "artist_id": artist_id,
+                        "artist": artist,
+                        "title": title,
+                        "days": days,
+                        "t10": t10,
+                        "peak": peak,
+                        "pk_streams": pk_streams,
+                        "total": total,
+                    }
+                )
 
             except Exception:
                 continue
@@ -140,26 +140,30 @@ class Step1Pipeline(DataPipeline):
 
         # 保存
         output_file = self.get_output_files()[0]
-        df.to_csv(output_file, index=False, encoding='utf-8-sig')
+        df.to_csv(output_file, index=False, encoding="utf-8-sig")
         print(f"\n保存: {output_file} ({len(df)}曲)")
 
         # サマリー表示
         print(f"\n{'='*60}")
         print("上位20曲（Total順）")
-        print('='*60)
-        top20 = df.nlargest(20, 'total')[['artist', 'title', 'peak', 'total']]
-        top20['total'] = top20['total'].apply(lambda x: f"{x:,}")
+        print("=" * 60)
+        top20 = df.nlargest(20, "total")[["artist", "title", "peak", "total"]]
+        top20["total"] = top20["total"].apply(lambda x: f"{x:,}")
         print(top20.to_string(index=False))
 
         # アーティスト別集計
         print(f"\n{'='*60}")
         print("アーティスト別曲数（上位20）")
-        print('='*60)
-        artist_counts = df.groupby('artist').agg(
-            song_count=('title', 'count'),
-            total_streams=('total', 'sum')
-        ).sort_values('total_streams', ascending=False).head(20)
-        artist_counts['total_streams'] = artist_counts['total_streams'].apply(lambda x: f"{x:,}")
+        print("=" * 60)
+        artist_counts = (
+            df.groupby("artist")
+            .agg(song_count=("title", "count"), total_streams=("total", "sum"))
+            .sort_values("total_streams", ascending=False)
+            .head(20)
+        )
+        artist_counts["total_streams"] = artist_counts["total_streams"].apply(
+            lambda x: f"{x:,}"
+        )
         print(artist_counts.to_string())
 
         return True
@@ -168,7 +172,7 @@ class Step1Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config['paths']['data_dir']
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step1Pipeline(config, data_dir)
     success = pipeline.execute()

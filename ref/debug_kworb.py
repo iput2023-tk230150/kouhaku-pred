@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 # srcディレクトリをパスに追加
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import requests
 from bs4 import BeautifulSoup
@@ -21,13 +21,14 @@ from bs4 import BeautifulSoup
 # config.tomlから設定を読み込む
 try:
     from core.pipeline import load_config
+
     config = load_config()
-    HEADERS = {'User-Agent': config['network']['user_agent']}
-    DEFAULT_URL = config['network']['urls']['default_debug_url']
+    HEADERS = {"User-Agent": config["network"]["user_agent"]}
+    DEFAULT_URL = config["network"]["urls"]["default_debug_url"]
 except Exception:
     # フォールバック
     HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     DEFAULT_URL = "https://kworb.net/spotify/artist/4QvgGvpgzgyUOo8Yp8LDm9.html"
 
@@ -52,44 +53,49 @@ def analyze_page(url: str):
         print("ページ取得失敗")
         return
 
-    soup = BeautifulSoup(resp.text, 'html.parser')
+    soup = BeautifulSoup(resp.text, "html.parser")
 
     # ページタイトル
-    title = soup.find('title')
+    title = soup.find("title")
     print(f"\nページタイトル: {title.get_text() if title else 'N/A'}")
 
     # 全テーブルを列挙
-    tables = soup.find_all('table')
+    tables = soup.find_all("table")
     print(f"\n{'='*60}")
     print(f"テーブル数: {len(tables)}")
-    print('='*60)
+    print("=" * 60)
 
     for i, table in enumerate(tables):
         print(f"\n--- テーブル {i+1} ---")
 
         # クラス名
-        classes = table.get('class', [])
+        classes = table.get("class", [])
         print(f"クラス: {classes if classes else 'なし'}")
 
         # ヘッダー行
-        rows = table.find_all('tr')
+        rows = table.find_all("tr")
         if rows:
             header_row = rows[0]
-            headers = [cell.get_text(strip=True) for cell in header_row.find_all(['th', 'td'])]
+            headers = [
+                cell.get_text(strip=True) for cell in header_row.find_all(["th", "td"])
+            ]
             print(f"ヘッダー ({len(headers)}列): {headers}")
 
             # 最初の3データ行を表示
             print("サンプル行:")
             for j, row in enumerate(rows[1:4], 1):
-                cells = [cell.get_text(strip=True)[:30] for cell in row.find_all(['td', 'th'])]
+                cells = [
+                    cell.get_text(strip=True)[:30]
+                    for cell in row.find_all(["td", "th"])
+                ]
                 print(f"  行 {j}: {cells}")
 
         print(f"総行数: {len(rows)}")
 
     # HTMLを保存（デバッグ用）
     project_root = Path(__file__).parent.parent
-    debug_file = project_root / 'debug_page_structure.html'
-    with open(debug_file, 'w', encoding='utf-8') as f:
+    debug_file = project_root / "debug_page_structure.html"
+    with open(debug_file, "w", encoding="utf-8") as f:
         f.write(resp.text)
     print(f"\nフルHTML保存: {debug_file}")
 

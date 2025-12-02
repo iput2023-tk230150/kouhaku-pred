@@ -23,13 +23,13 @@ class Step3Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
-        self.target_years = config['kouhaku']['target_years']
-        self.api_url = config['network']['urls']['wikipedia_api']
-        self.headers = {'User-Agent': config['network']['user_agent']}
-        self.interval = config['network']['request_interval']
+        self.target_years = config["kouhaku"]["target_years"]
+        self.api_url = config["network"]["urls"]["wikipedia_api"]
+        self.headers = {"User-Agent": config["network"]["user_agent"]}
+        self.interval = config["network"]["request_interval"]
 
     def get_output_files(self) -> list[Path]:
-        return [self.data_dir / 'kouhaku_artists.csv']
+        return [self.data_dir / "kouhaku_artists.csv"]
 
     def get_kouhaku_page(self, kai_number: int) -> str | None:
         """
@@ -44,18 +44,20 @@ class Step3Pipeline(DataPipeline):
         title = f"第{kai_number}回NHK紅白歌合戦"
 
         params = {
-            'action': 'parse',
-            'page': title,
-            'format': 'json',
-            'prop': 'text',
+            "action": "parse",
+            "page": title,
+            "format": "json",
+            "prop": "text",
         }
 
         try:
-            resp = requests.get(self.api_url, params=params, headers=self.headers, timeout=30)
+            resp = requests.get(
+                self.api_url, params=params, headers=self.headers, timeout=30
+            )
             data = resp.json()
 
-            if 'parse' in data:
-                return data['parse']['text']['*']
+            if "parse" in data:
+                return data["parse"]["text"]["*"]
             return None
         except Exception as e:
             print(f"  エラー: {e}")
@@ -73,29 +75,29 @@ class Step3Pipeline(DataPipeline):
         Returns:
             アーティスト情報の辞書のリスト
         """
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, "html.parser")
         artists = []
         seen = set()
 
         # 全wikitableを走査
-        tables = soup.find_all('table', class_='wikitable')
+        tables = soup.find_all("table", class_="wikitable")
 
         for table in tables:
-            rows = table.find_all('tr')
+            rows = table.find_all("tr")
             if not rows:
                 continue
 
             # ヘッダー行を確認
-            header_cells = rows[0].find_all(['th', 'td'])
+            header_cells = rows[0].find_all(["th", "td"])
             headers = [c.get_text(strip=True) for c in header_cells]
 
             # 「曲順」と「歌手名」カラムを探す
             order_idx = None
             singer_idx = None
             for i, h in enumerate(headers):
-                if h == '曲順':
+                if h == "曲順":
                     order_idx = i
-                if h == '歌手名':
+                if h == "歌手名":
                     singer_idx = i
 
             if singer_idx is None or order_idx is None:
@@ -103,7 +105,7 @@ class Step3Pipeline(DataPipeline):
 
             # データ行を処理
             for row in rows[1:]:
-                cells = row.find_all(['td', 'th'])
+                cells = row.find_all(["td", "th"])
                 if len(cells) <= max(singer_idx, order_idx):
                     continue
 
@@ -115,14 +117,14 @@ class Step3Pipeline(DataPipeline):
                 cell = cells[singer_idx]
 
                 # セル内のリンクから歌手名を取得
-                links = cell.find_all('a')
+                links = cell.find_all("a")
                 for link in links:
                     name = link.get_text(strip=True)
 
                     # フィルタ
                     if not name:
                         continue
-                    if name.startswith('['):  # 注釈リンク
+                    if name.startswith("["):  # 注釈リンク
                         continue
                     if len(name) < 2:
                         continue
@@ -130,10 +132,12 @@ class Step3Pipeline(DataPipeline):
                         continue
 
                     seen.add(name)
-                    artists.append({
-                        'year': year,
-                        'artist': name,
-                    })
+                    artists.append(
+                        {
+                            "year": year,
+                            "artist": name,
+                        }
+                    )
 
         return artists
 
@@ -157,7 +161,7 @@ class Step3Pipeline(DataPipeline):
             print(f"  取得アーティスト数: {len(artists)}")
 
             if artists:
-                sample = [a['artist'] for a in artists[:5]]
+                sample = [a["artist"] for a in artists[:5]]
                 print(f"  サンプル: {sample}")
 
             all_artists.extend(artists)
@@ -172,18 +176,18 @@ class Step3Pipeline(DataPipeline):
 
         # 保存
         output_file = self.get_output_files()[0]
-        df.to_csv(output_file, index=False, encoding='utf-8-sig')
+        df.to_csv(output_file, index=False, encoding="utf-8-sig")
 
         print(f"\n{'='*60}")
         print(f"保存: {output_file} ({len(df)}件)")
 
         # 年別集計
         print(f"\n年別出場者数:")
-        print(df.groupby('year').size())
+        print(df.groupby("year").size())
 
         # 複数年出場アーティスト
         print(f"\n複数年出場アーティスト（3回以上）:")
-        artist_counts = df.groupby('artist').size().sort_values(ascending=False)
+        artist_counts = df.groupby("artist").size().sort_values(ascending=False)
         multi_year = artist_counts[artist_counts >= 3]
         if len(multi_year) > 0:
             print(multi_year.head(15))
@@ -196,7 +200,7 @@ class Step3Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config['paths']['data_dir']
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step3Pipeline(config, data_dir)
     success = pipeline.execute()

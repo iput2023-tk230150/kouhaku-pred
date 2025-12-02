@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 # srcディレクトリをパスに追加
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pandas as pd
 from utils import ArtistNameNormalizer, ArtistMapper
@@ -36,8 +36,8 @@ def main():
     try:
         # プロジェクトルートのデータファイルを読み込む
         project_root = Path(__file__).parent.parent
-        df_spotify = pd.read_csv(project_root / 'data' / 'jp_yearly_stats.csv')
-        df_kouhaku = pd.read_csv(project_root / 'data' / 'kouhaku_artists.csv')
+        df_spotify = pd.read_csv(project_root / "data" / "jp_yearly_stats.csv")
+        df_kouhaku = pd.read_csv(project_root / "data" / "kouhaku_artists.csv")
     except FileNotFoundError as e:
         print(f"エラー: ファイルが見つかりません - {e}")
         print(f"プロジェクトルート: {project_root}")
@@ -49,14 +49,14 @@ def main():
     mapper = ArtistMapper(normalizer)
 
     # ユニークなアーティスト名を取得
-    spotify_artists = df_spotify['artist'].unique().tolist()
-    kouhaku_artists = df_kouhaku['artist'].unique().tolist()
+    spotify_artists = df_spotify["artist"].unique().tolist()
+    kouhaku_artists = df_kouhaku["artist"].unique().tolist()
 
     print(f"\nSpotifyアーティスト数: {len(spotify_artists)}")
     print(f"紅白アーティスト数: {len(kouhaku_artists)}")
 
     # 手動マッピングを読み込み
-    manual_count = mapper.load_manual_mapping(str(project_root / 'manual_mapping.csv'))
+    manual_count = mapper.load_manual_mapping(str(project_root / "manual_mapping.csv"))
     if manual_count > 0:
         print(f"手動マッピング読み込み: {manual_count}件")
 
@@ -68,8 +68,7 @@ def main():
     # マッチング実行
     print("\nマッチング実行中...")
     matched, similar_candidates, unmatched = mapper.match_artists(
-        kouhaku_artists,
-        similarity_threshold=0.6
+        kouhaku_artists, similarity_threshold=0.6
     )
 
     # 結果を保存

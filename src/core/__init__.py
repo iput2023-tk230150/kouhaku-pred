@@ -6,4 +6,4 @@ Core モジュール
 
 from .pipeline import DataPipeline, load_config
 
-__all__ = ['DataPipeline', 'load_config']
+__all__ = ["DataPipeline", "load_config"]

@@ -32,13 +32,13 @@ def parse_jp_value(value: str) -> tuple[int | None, int | None]:
     JP値をパース: '1(26,291)' -> (1, 26291)
     '--' -> (None, None)
     """
-    if not value or value == '--':
+    if not value or value == "--":
         return None, None
 
-    match = re.match(r'(\d+)\(([0-9,]+)\)', value)
+    match = re.match(r"(\d+)\(([0-9,]+)\)", value)
     if match:
         rank = int(match.group(1))
-        streams = int(match.group(2).replace(',', ''))
+        streams = int(match.group(2).replace(",", ""))
         return rank, streams
 
     # 順位のみの場合
@@ -53,20 +53,20 @@ class Step2Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
-        self.headers = {'User-Agent': config['network']['user_agent']}
-        self.timeout = config['network']['request_timeout']
-        self.interval = config['network']['request_interval']
-        self.target_years = config['data_collection']['target_years']
-        self.top_n = config['data_collection']['top_n_songs']
+        self.headers = {"User-Agent": config["network"]["user_agent"]}
+        self.timeout = config["network"]["request_timeout"]
+        self.interval = config["network"]["request_interval"]
+        self.target_years = config["data_collection"]["target_years"]
+        self.top_n = config["data_collection"]["top_n_songs"]
 
     def get_output_files(self) -> list[Path]:
         return [
-            self.data_dir / 'jp_weekly_data.csv',
-            self.data_dir / 'jp_yearly_stats.csv'
+            self.data_dir / "jp_weekly_data.csv",
+            self.data_dir / "jp_yearly_stats.csv",
         ]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
-        input_file = self.data_dir / 'jp_songs_list.csv'
+        input_file = self.data_dir / "jp_songs_list.csv"
         if not input_file.exists():
             return False, [str(input_file)]
         return True, []
@@ -77,13 +77,13 @@ class Step2Pipeline(DataPipeline):
 
         try:
             resp = requests.get(url, headers=self.headers, timeout=self.timeout)
-            resp.encoding = 'utf-8'
+            resp.encoding = "utf-8"
 
             if resp.status_code != 200:
                 return []
 
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            tables = soup.find_all('table')
+            soup = BeautifulSoup(resp.text, "html.parser")
+            tables = soup.find_all("table")
 
             if len(tables) < 1:
                 return []
@@ -92,15 +92,17 @@ class Step2Pipeline(DataPipeline):
             weekly_table = tables[0]
 
             # ヘッダーからJPカラムのインデックスを特定
-            header_row = weekly_table.find('tr')
+            header_row = weekly_table.find("tr")
             if not header_row:
                 return []
 
-            headers = [th.get_text(strip=True) for th in header_row.find_all(['th', 'td'])]
+            headers = [
+                th.get_text(strip=True) for th in header_row.find_all(["th", "td"])
+            ]
 
             jp_index = None
             for i, h in enumerate(headers):
-                if h == 'JP':
+                if h == "JP":
                     jp_index = i
                     break
 
@@ -108,22 +110,22 @@ class Step2Pipeline(DataPipeline):
                 return []
 
             # データ行を処理（Total, Peakをスキップ）
-            rows = weekly_table.find_all('tr')[1:]
+            rows = weekly_table.find_all("tr")[1:]
             weekly_data = []
 
             for row in rows:
-                cells = row.find_all('td')
+                cells = row.find_all("td")
                 if len(cells) <= jp_index:
                     continue
 
                 date_str = cells[0].get_text(strip=True)
 
                 # Total, Peak行はスキップ
-                if date_str in ['Total', 'Peak']:
+                if date_str in ["Total", "Peak"]:
                     continue
 
                 # 日付形式チェック
-                if not re.match(r'\d{4}/\d{2}/\d{2}', date_str):
+                if not re.match(r"\d{4}/\d{2}/\d{2}", date_str):
                     continue
 
                 jp_value = cells[jp_index].get_text(strip=True)
@@ -131,12 +133,14 @@ class Step2Pipeline(DataPipeline):
 
                 if rank is not None:
                     year = int(date_str[:4])
-                    weekly_data.append({
-                        'date': date_str,
-                        'year': year,
-                        'jp_rank': rank,
-                        'jp_streams': streams,
-                    })
+                    weekly_data.append(
+                        {
+                            "date": date_str,
+                            "year": year,
+                            "jp_rank": rank,
+                            "jp_streams": streams,
+                        }
+                    )
 
             return weekly_data
 
@@ -156,7 +160,7 @@ class Step2Pipeline(DataPipeline):
             print("先に step1_get_song_list.py を実行してください")
             return False
 
-        input_file = self.data_dir / 'jp_songs_list.csv'
+        input_file = self.data_dir / "jp_songs_list.csv"
         df_songs = pd.read_csv(input_file)
         print(f"読み込み曲数: {len(df_songs)}")
 
@@ -175,22 +179,24 @@ class Step2Pipeline(DataPipeline):
         print()
 
         for idx, row in df_songs.iterrows():
-            track_id = row['track_id']
-            artist = row['artist']
-            title = row['title']
+            track_id = row["track_id"]
+            artist = row["artist"]
+            title = row["title"]
 
             # 進捗表示
             if (idx + 1) % 10 == 0:
-                print(f"  {idx + 1}/{len(df_songs)} 処理中... (取得データ: {len(all_weekly)}件)")
+                print(
+                    f"  {idx + 1}/{len(df_songs)} 処理中... (取得データ: {len(all_weekly)}件)"
+                )
 
             weekly = self.get_track_weekly_jp(track_id)
 
             # 対象年のみフィルタ
             for w in weekly:
-                if w['year'] in self.target_years:
-                    w['track_id'] = track_id
-                    w['artist'] = artist
-                    w['title'] = title
+                if w["year"] in self.target_years:
+                    w["track_id"] = track_id
+                    w["artist"] = artist
+                    w["title"] = title
                     all_weekly.append(w)
 
             time.sleep(self.interval)
@@ -206,36 +212,44 @@ class Step2Pipeline(DataPipeline):
 
         # 週次データ保存
         weekly_file = self.get_output_files()[0]
-        df_weekly.to_csv(weekly_file, index=False, encoding='utf-8-sig')
+        df_weekly.to_csv(weekly_file, index=False, encoding="utf-8-sig")
         print(f"保存: {weekly_file}")
 
         # 年別・アーティスト別集計
-        yearly_stats = df_weekly.groupby(['artist', 'year']).agg(
-            weeks_on_chart=('date', 'count'),
-            total_streams=('jp_streams', 'sum'),
-            best_rank=('jp_rank', 'min'),
-            avg_rank=('jp_rank', 'mean'),
-            top10_weeks=('jp_rank', lambda x: (x <= 10).sum()),
-            top1_weeks=('jp_rank', lambda x: (x == 1).sum()),
-        ).reset_index()
+        yearly_stats = (
+            df_weekly.groupby(["artist", "year"])
+            .agg(
+                weeks_on_chart=("date", "count"),
+                total_streams=("jp_streams", "sum"),
+                best_rank=("jp_rank", "min"),
+                avg_rank=("jp_rank", "mean"),
+                top10_weeks=("jp_rank", lambda x: (x <= 10).sum()),
+                top1_weeks=("jp_rank", lambda x: (x == 1).sum()),
+            )
+            .reset_index()
+        )
 
         stats_file = self.get_output_files()[1]
-        yearly_stats.to_csv(stats_file, index=False, encoding='utf-8-sig')
+        yearly_stats.to_csv(stats_file, index=False, encoding="utf-8-sig")
         print(f"保存: {stats_file}")
 
         # サマリー表示
         print(f"\n{'='*60}")
         print("年別・アーティスト別 ストリーム数ランキング（2024年）")
-        print('='*60)
+        print("=" * 60)
 
-        rank_2024 = yearly_stats[yearly_stats['year'] == 2024].sort_values(
-            'total_streams', ascending=False
-        ).head(20)
+        rank_2024 = (
+            yearly_stats[yearly_stats["year"] == 2024]
+            .sort_values("total_streams", ascending=False)
+            .head(20)
+        )
 
         for _, row in rank_2024.iterrows():
-            streams = row['total_streams']
+            streams = row["total_streams"]
             streams_str = f"{streams:,.0f}" if pd.notna(streams) else "N/A"
-            print(f"  {row['artist']}: {streams_str} streams, Best: {row['best_rank']:.0f}")
+            print(
+                f"  {row['artist']}: {streams_str} streams, Best: {row['best_rank']:.0f}"
+            )
 
         return True
 
@@ -243,7 +257,7 @@ class Step2Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config['paths']['data_dir']
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step2Pipeline(config, data_dir)
     success = pipeline.execute()

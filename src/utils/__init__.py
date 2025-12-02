@@ -7,4 +7,4 @@ Utils モジュール
 from .normalizer import ArtistNameNormalizer
 from .mapper import ArtistMapper
 
-__all__ = ['ArtistNameNormalizer', 'ArtistMapper']
+__all__ = ["ArtistNameNormalizer", "ArtistMapper"]

@@ -35,33 +35,24 @@ def parse_args():
     """コマンドライン引数のパース"""
     parser = argparse.ArgumentParser(
         description="紅白予測システム データ収集パイプライン",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
-        '--steps',
+        "--steps", type=int, nargs="+", help="実行するステップ番号（例: --steps 1 2 3）"
+    )
+
+    parser.add_argument(
+        "--from",
         type=int,
-        nargs='+',
-        help='実行するステップ番号（例: --steps 1 2 3）'
+        dest="from_step",
+        help="指定ステップ以降を実行（例: --from 2）",
     )
 
-    parser.add_argument(
-        '--from',
-        type=int,
-        dest='from_step',
-        help='指定ステップ以降を実行（例: --from 2）'
-    )
+    parser.add_argument("--config", type=str, help="カスタム設定ファイルのパス")
 
     parser.add_argument(
-        '--config',
-        type=str,
-        help='カスタム設定ファイルのパス'
-    )
-
-    parser.add_argument(
-        '--skip-dependency-check',
-        action='store_true',
-        help='依存チェックをスキップ'
+        "--skip-dependency-check", action="store_true", help="依存チェックをスキップ"
     )
 
     return parser.parse_args()
@@ -78,7 +69,9 @@ def get_steps_to_execute(args) -> list[int]:
         return sorted(PIPELINES.keys())
 
 
-def run_pipeline(config: dict[str, Any], data_dir: Path, skip_dependency_check: bool = False):
+def run_pipeline(
+    config: dict[str, Any], data_dir: Path, skip_dependency_check: bool = False
+):
     """パイプラインを実行"""
     args = parse_args()
     steps_to_execute = get_steps_to_execute(args)
@@ -188,7 +181,7 @@ def main():
         sys.exit(1)
 
     # データディレクトリ
-    data_dir = Path(__file__).parent.parent / config['paths']['data_dir']
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     # パイプライン実行
     exit_code = run_pipeline(config, data_dir, args.skip_dependency_check)

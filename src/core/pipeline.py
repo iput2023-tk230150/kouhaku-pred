@@ -79,10 +79,10 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     if config_path is None:
         # デフォルトパス: src/config.toml
-        config_path = Path(__file__).parent.parent / 'config.toml'
+        config_path = Path(__file__).parent.parent / "config.toml"
 
     if not config_path.exists():
         raise FileNotFoundError(f"設定ファイルが見つかりません: {config_path}")
 
-    with open(config_path, 'rb') as f:
+    with open(config_path, "rb") as f:
         return tomllib.load(f)

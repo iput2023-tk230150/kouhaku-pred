@@ -16,42 +16,42 @@ class ArtistNameNormalizer:
 
         # 記号の置換ルール
         self.symbol_replacements = {
-            '&': 'AND',
-            '＆': 'AND',
-            '+': 'PLUS',
-            '×': 'X',
-            '☆': '',
-            '★': '',
-            '♪': '',
-            '・': '',
-            '　': '',  # 全角スペース
-            ' ': '',   # 半角スペース
-            '-': '',
-            '_': '',
-            '.': '',
-            "'": '',
-            '"': '',
-            '!': '',
-            '?': '',
-            '?': '',
-            '~': '',
-            '〜': '',
+            "&": "AND",
+            "＆": "AND",
+            "+": "PLUS",
+            "×": "X",
+            "☆": "",
+            "★": "",
+            "♪": "",
+            "・": "",
+            "　": "",  # 全角スペース
+            " ": "",  # 半角スペース
+            "-": "",
+            "_": "",
+            ".": "",
+            "'": "",
+            '"': "",
+            "!": "",
+            "?": "",
+            "?": "",
+            "~": "",
+            "〜": "",
         }
 
         # 長音の正規化ルール(ヘボン式 → 簡略化)
         self.long_vowel_rules = [
-            ('OU', 'O'),   # おう → O (例: TOUKYOU → TOKYO)
-            ('OO', 'O'),   # おお → O
-            ('UU', 'U'),   # うう → U
-            ('II', 'I'),   # いい → I
-            ('EI', 'E'),   # えい → E (例: SENSEI → SENSE) ※これは微妙なので後で調整可能
-            ('AA', 'A'),   # ああ → A
+            ("OU", "O"),  # おう → O (例: TOUKYOU → TOKYO)
+            ("OO", "O"),  # おお → O
+            ("UU", "U"),  # うう → U
+            ("II", "I"),  # いい → I
+            ("EI", "E"),  # えい → E (例: SENSEI → SENSE) ※これは微妙なので後で調整可能
+            ("AA", "A"),  # ああ → A
         ]
 
     def to_romaji(self, text: str) -> str:
         """日本語をローマ字に変換"""
         result = self.kks.convert(text)
-        return ''.join([item['hepburn'] for item in result])
+        return "".join([item["hepburn"] for item in result])
 
     def normalize_long_vowels(self, text: str) -> str:
         """長音を正規化"""
@@ -62,8 +62,10 @@ class ArtistNameNormalizer:
 
     def normalize(self, name: str, apply_long_vowel: bool = True) -> str:
         """アーティスト名を正規化"""
-        if not name or (hasattr(name, '__class__') and name.__class__.__name__ == 'NAType'):
-            return ''
+        if not name or (
+            hasattr(name, "__class__") and name.__class__.__name__ == "NAType"
+        ):
+            return ""
 
         normalized = str(name)
 
@@ -83,7 +85,7 @@ class ArtistNameNormalizer:
             normalized = self.normalize_long_vowels(normalized)
 
         # 5. 英数字以外を除去
-        normalized = re.sub(r'[^A-Z0-9]', '', normalized)
+        normalized = re.sub(r"[^A-Z0-9]", "", normalized)
 
         return normalized
 
@@ -115,11 +117,11 @@ class ArtistNameNormalizer:
 
     def _contains_japanese(self, text: str) -> bool:
         """日本語(ひらがな・カタカナ・漢字)が含まれるか判定"""
-        return bool(re.search(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]', text))
+        return bool(re.search(r"[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]", text))
 
     def _is_japanese_name(self, name: str) -> bool:
         """日本人名らしいか判定(日本語文字2文字以上)"""
-        japanese_chars = re.sub(r'[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]', '', name)
+        japanese_chars = re.sub(r"[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]", "", name)
         return 2 <= len(japanese_chars) <= 10
 
     def _generate_reversed_name_variants(self, name: str) -> list[str]:
@@ -131,7 +133,7 @@ class ArtistNameNormalizer:
         variants = []
 
         # 日本語部分を抽出(漢字・ひらがな・カタカナ)
-        japanese_part = re.sub(r'[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]', '', name)
+        japanese_part = re.sub(r"[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]", "", name)
 
         if len(japanese_part) < 2:
             return variants
@@ -148,7 +150,7 @@ class ArtistNameNormalizer:
                 # ローマ字変換して正規化
                 romaji_reversed = self.to_romaji(reversed_name).upper()
                 romaji_reversed = self.normalize_long_vowels(romaji_reversed)
-                romaji_reversed = re.sub(r'[^A-Z0-9]', '', romaji_reversed)
+                romaji_reversed = re.sub(r"[^A-Z0-9]", "", romaji_reversed)
 
                 if romaji_reversed:
                     variants.append(romaji_reversed)
