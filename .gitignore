@@ -61,10 +61,10 @@ notebooks/*.ipynb
 *.key
 *.pem
 credentials.json
-.cache                       # Spotify APIトークンキャッシュ
-src/.cache                   # Spotify APIトークンキャッシュ（src内）
-manual_mapping.csv           # 手動マッピングは個人環境依存のため
-artist_name_mapping.csv      # 生成ファイル
+# Spotify APIトークンキャッシュ
+.cache                       
+manual_mapping.csv           
+artist_name_mapping.csv      
 artist_name_mapping_draft.csv
 unmatched_artists.csv
 
