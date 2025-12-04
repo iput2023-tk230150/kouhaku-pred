@@ -5,7 +5,7 @@ Step 6: SHAP値分析スクリプト
 
 入力:
 - data/models/model.pkl: 学習済みモデル
-- data/learning_data.csv: 学習データ
+- data/processed/learning_data.csv: 学習データ
 
 出力:
 - data/analysis/shap_summary.png: SHAP summary plot
@@ -31,6 +31,7 @@ class Step6Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
+        self.processed_dir = data_dir / "processed"
         self.models_dir = data_dir / "models"
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +58,7 @@ class Step6Pipeline(DataPipeline):
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
         model_file = self.models_dir / "model.pkl"
-        learning_data_file = self.data_dir / "learning_data.csv"
+        learning_data_file = self.processed_dir / "learning_data.csv"
 
         missing = []
         if not model_file.exists():
@@ -91,7 +92,7 @@ class Step6Pipeline(DataPipeline):
         print("  モデルを読み込みました")
 
         # 学習データ読み込み
-        df = pd.read_csv(self.data_dir / "learning_data.csv")
+        df = pd.read_csv(self.processed_dir / "learning_data.csv")
 
         # 紅白データがある年のみ使用
         df_with_kouhaku = df[df.groupby("year")["appeared"].transform("sum") > 0]

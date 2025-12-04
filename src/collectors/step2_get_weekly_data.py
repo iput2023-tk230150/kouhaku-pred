@@ -4,11 +4,11 @@ Step 2: 週次データ取得スクリプト
 Step1で取得した曲リストから、各曲の週次日本チャートデータを取得
 
 入力:
-- data/jp_songs_list.csv（Step1の出力）
+- data/raw/spotify/jp_songs_list.csv（Step1の出力）
 
 出力:
-- data/jp_weekly_data.csv: 全曲の週次JPデータ
-- data/jp_yearly_stats.csv: 年別・アーティスト別集計
+- data/raw/spotify/jp_weekly_data.csv: 全曲の週次JPデータ
+- data/raw/spotify/jp_yearly_stats.csv: 年別・アーティスト別集計
 
 注意:
 - 6000曲以上あるため、全曲取得には数時間かかる
@@ -58,15 +58,17 @@ class Step2Pipeline(DataPipeline):
         self.interval = config["network"]["request_interval"]
         self.target_years = config["data_collection"]["target_years"]
         self.top_n = config["data_collection"]["top_n_songs"]
+        self.raw_spotify_dir = data_dir / "raw" / "spotify"
+        self.raw_spotify_dir.mkdir(parents=True, exist_ok=True)
 
     def get_output_files(self) -> list[Path]:
         return [
-            self.data_dir / "jp_weekly_data.csv",
-            self.data_dir / "jp_yearly_stats.csv",
+            self.raw_spotify_dir / "jp_weekly_data.csv",
+            self.raw_spotify_dir / "jp_yearly_stats.csv",
         ]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
-        input_file = self.data_dir / "jp_songs_list.csv"
+        input_file = self.raw_spotify_dir / "jp_songs_list.csv"
         if not input_file.exists():
             return False, [str(input_file)]
         return True, []
@@ -160,7 +162,7 @@ class Step2Pipeline(DataPipeline):
             print("先に step1_get_song_list.py を実行してください")
             return False
 
-        input_file = self.data_dir / "jp_songs_list.csv"
+        input_file = self.raw_spotify_dir / "jp_songs_list.csv"
         df_songs = pd.read_csv(input_file)
         print(f"読み込み曲数: {len(df_songs)}")
 

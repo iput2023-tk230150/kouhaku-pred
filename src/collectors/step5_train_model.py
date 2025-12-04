@@ -4,7 +4,7 @@ Step 5: モデル学習スクリプト
 LightGBMを使用して紅白出場予測モデルを学習
 
 入力:
-- data/learning_data.csv: 学習データ
+- data/processed/learning_data.csv: 学習データ
 
 出力:
 - data/models/model.pkl: 学習済みモデル
@@ -42,6 +42,7 @@ class Step5Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
+        self.processed_dir = data_dir / "processed"
         self.models_dir = data_dir / "models"
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.analysis_dir = data_dir / "analysis"
@@ -71,7 +72,7 @@ class Step5Pipeline(DataPipeline):
         ]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
-        learning_data_file = self.data_dir / "learning_data.csv"
+        learning_data_file = self.processed_dir / "learning_data.csv"
         if not learning_data_file.exists():
             return False, [str(learning_data_file)]
         return True, []
@@ -93,7 +94,7 @@ class Step5Pipeline(DataPipeline):
 
         # ========== [1] データ読み込み ==========
         print("\n[1] データ読み込み")
-        df = pd.read_csv(self.data_dir / "learning_data.csv")
+        df = pd.read_csv(self.processed_dir / "learning_data.csv")
         print(f"  総レコード数: {len(df)}")
         print(f"  対象年: {df['year'].min()} - {df['year'].max()}")
 

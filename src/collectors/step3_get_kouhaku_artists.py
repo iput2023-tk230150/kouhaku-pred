@@ -4,7 +4,7 @@ Step 3: 紅白出場者リスト取得スクリプト
 WikipediaのMediaWiki APIを使用して紅白歌合戦の出場者リストを取得
 
 出力:
-- data/kouhaku_artists.csv: 年別出場者リスト（year, artist）
+- data/raw/kouhaku/kouhaku_artists.csv: 年別出場者リスト（year, artist）
 """
 
 import sys
@@ -27,9 +27,11 @@ class Step3Pipeline(DataPipeline):
         self.api_url = config["network"]["urls"]["wikipedia_api"]
         self.headers = {"User-Agent": config["network"]["user_agent"]}
         self.interval = config["network"]["request_interval"]
+        self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
+        self.raw_kouhaku_dir.mkdir(parents=True, exist_ok=True)
 
     def get_output_files(self) -> list[Path]:
-        return [self.data_dir / "kouhaku_artists.csv"]
+        return [self.raw_kouhaku_dir / "kouhaku_artists.csv"]
 
     def get_kouhaku_page(self, kai_number: int) -> str | None:
         """

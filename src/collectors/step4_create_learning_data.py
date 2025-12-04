@@ -5,12 +5,12 @@ Step 4: 学習データ作成スクリプト
 紅白出場予測用の学習データを作成
 
 入力:
-- data/jp_yearly_stats.csv: Spotify年別データ
-- data/kouhaku_artists.csv: 紅白出場者リスト
-- data/mapping/final_mapping.csv: 紅白⇔Spotify表記揺れ対応表（オプション）
+- data/raw/spotify/jp_yearly_stats.csv: Spotify年別データ
+- data/raw/kouhaku/kouhaku_artists.csv: 紅白出場者リスト
+- data/processed/mapping/final_mapping.csv: 紅白⇔Spotify表記揺れ対応表（オプション）
 
 出力:
-- data/learning_data.csv: 学習データ
+- data/processed/learning_data.csv: 学習データ
 """
 
 import sys
@@ -58,13 +58,17 @@ class Step4Pipeline(DataPipeline):
         super().__init__(config, data_dir)
         self.target_years = config["data_collection"]["target_years"]
         self.spotify_defaults = config["learning_data"]["spotify_defaults"]
+        self.raw_spotify_dir = data_dir / "raw" / "spotify"
+        self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
+        self.processed_dir = data_dir / "processed"
+        self.processed_dir.mkdir(parents=True, exist_ok=True)
 
     def get_output_files(self) -> list[Path]:
-        return [self.data_dir / "learning_data.csv"]
+        return [self.processed_dir / "learning_data.csv"]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
-        spotify_file = self.data_dir / "jp_yearly_stats.csv"
-        kouhaku_file = self.data_dir / "kouhaku_artists.csv"
+        spotify_file = self.raw_spotify_dir / "jp_yearly_stats.csv"
+        kouhaku_file = self.raw_kouhaku_dir / "kouhaku_artists.csv"
 
         missing = []
         if not spotify_file.exists():
@@ -92,8 +96,8 @@ class Step4Pipeline(DataPipeline):
         # ========== [1] データ読み込み ==========
         print("\n[1] データ読み込み")
 
-        spotify_file = self.data_dir / "jp_yearly_stats.csv"
-        kouhaku_file = self.data_dir / "kouhaku_artists.csv"
+        spotify_file = self.raw_spotify_dir / "jp_yearly_stats.csv"
+        kouhaku_file = self.raw_kouhaku_dir / "kouhaku_artists.csv"
 
         df_spotify = pd.read_csv(spotify_file)
         df_kouhaku = pd.read_csv(kouhaku_file)
@@ -109,7 +113,7 @@ class Step4Pipeline(DataPipeline):
         print("\n[2] アーティスト名の正規化")
 
         # 表記揺れ対応表を読み込み（Spotify API で作成したマッピング）
-        mapping_file = self.data_dir / "mapping" / "final_mapping.csv"
+        mapping_file = self.processed_dir / "mapping" / "final_mapping.csv"
         try:
             df_mapping = pd.read_csv(mapping_file)
             name_mapping = dict(

@@ -4,7 +4,7 @@ Step 1: 曲リスト取得スクリプト
 kworb.net Japan Daily Totalsページから曲リスト（Track ID含む）を取得
 
 出力:
-- jp_songs_list.csv: 曲リスト（track_id, artist, title, total等）
+- data/raw/spotify/jp_songs_list.csv: 曲リスト（track_id, artist, title, total等）
 """
 
 import sys
@@ -34,9 +34,11 @@ class Step1Pipeline(DataPipeline):
         self.url = config["network"]["urls"]["kworb_jp_daily"]
         self.headers = {"User-Agent": config["network"]["user_agent"]}
         self.timeout = config["network"]["request_timeout"]
+        self.raw_spotify_dir = data_dir / "raw" / "spotify"
+        self.raw_spotify_dir.mkdir(parents=True, exist_ok=True)
 
     def get_output_files(self) -> list[Path]:
-        return [self.data_dir / "jp_songs_list.csv"]
+        return [self.raw_spotify_dir / "jp_songs_list.csv"]
 
     def fetch_song_list(self) -> list[dict]:
         """
