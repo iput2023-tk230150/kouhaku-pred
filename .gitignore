@@ -35,10 +35,6 @@ env/
 *.swo
 *~
 
-# データファイル（大容量のため除外）
-
-# モデルファイル
-
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb
@@ -50,12 +46,6 @@ notebooks/*.ipynb
 *.key
 *.pem
 credentials.json
-# Spotify APIトークンキャッシュ
-.cache                       
-manual_mapping.csv           
-artist_name_mapping.csv      
-artist_name_mapping_draft.csv
-unmatched_artists.csv
 
 # OS
 .DS_Store
@@ -83,5 +73,8 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# Nextcloud（個人環境）
+# User Setting
 .sync-exclude.lst
+.cache 
+data/analysis
+data/mapping

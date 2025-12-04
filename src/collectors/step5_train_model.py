@@ -7,9 +7,10 @@ LightGBMを使用して紅白出場予測モデルを学習
 - data/learning_data.csv: 学習データ
 
 出力:
-- models/model.pkl: 学習済みモデル
-- models/feature_importance.csv: 特徴量重要度
-- models/evaluation_results.csv: 評価結果
+- data/models/model.pkl: 学習済みモデル
+- data/analysis/feature_importance.csv: 特徴量重要度
+- data/analysis/evaluation_results.csv: 評価結果
+- data/analysis/predictions_2024.csv: 2024年予測結果
 
 評価方法:
 - 時系列CV: 過去の年で学習し、未来を予測
@@ -43,6 +44,8 @@ class Step5Pipeline(DataPipeline):
         super().__init__(config, data_dir)
         self.models_dir = data_dir / "models"
         self.models_dir.mkdir(parents=True, exist_ok=True)
+        self.analysis_dir = data_dir / "analysis"
+        self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
         # 特徴量カラム（学習に使用）
         self.feature_cols = [
@@ -62,8 +65,9 @@ class Step5Pipeline(DataPipeline):
     def get_output_files(self) -> list[Path]:
         return [
             self.models_dir / "model.pkl",
-            self.models_dir / "feature_importance.csv",
-            self.models_dir / "evaluation_results.csv",
+            self.analysis_dir / "feature_importance.csv",
+            self.analysis_dir / "evaluation_results.csv",
+            self.analysis_dir / "predictions_2024.csv",
         ]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
@@ -191,8 +195,9 @@ class Step5Pipeline(DataPipeline):
         print(f"    F1-score:  {df_cv['f1'].mean():.3f} ± {df_cv['f1'].std():.3f}")
 
         # 評価結果保存
-        df_cv.to_csv(self.models_dir / "evaluation_results.csv", index=False, encoding="utf-8-sig")
-        print(f"\n  評価結果を保存: {self.models_dir / 'evaluation_results.csv'}")
+        eval_path = self.analysis_dir / "evaluation_results.csv"
+        df_cv.to_csv(eval_path, index=False, encoding="utf-8-sig")
+        print(f"\n  評価結果を保存: {eval_path}")
 
         # ========== [4] 最終モデル学習 ==========
         print("\n[4] 最終モデル学習（全データ使用）")
@@ -242,7 +247,7 @@ class Step5Pipeline(DataPipeline):
             print(f"    {row['feature']:20s}: {row['importance_pct']:5.1f}% {bar}")
 
         # 重要度保存
-        importance_path = self.models_dir / "feature_importance.csv"
+        importance_path = self.analysis_dir / "feature_importance.csv"
         df_importance.to_csv(importance_path, index=False, encoding="utf-8-sig")
         print(f"\n  特徴量重要度を保存: {importance_path}")
 
@@ -290,7 +295,7 @@ class Step5Pipeline(DataPipeline):
                 )
 
             # 予測結果保存
-            pred_path = self.models_dir / "predictions_2024.csv"
+            pred_path = self.analysis_dir / "predictions_2024.csv"
             df_pred_2024.to_csv(pred_path, index=False, encoding="utf-8-sig")
             print(f"\n  2024年予測結果を保存: {pred_path}")
 

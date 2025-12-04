@@ -20,11 +20,8 @@ import numpy as np
 import pickle
 import shap
 import matplotlib.pyplot as plt
-import matplotlib
 from typing import Any
 
-# 日本語フォント設定
-matplotlib.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'sans-serif']
 
 from core.pipeline import DataPipeline, load_config
 
@@ -51,20 +48,6 @@ class Step6Pipeline(DataPipeline):
             "prev_year_appeared",
             "consecutive_years",
         ]
-
-        # 特徴量の日本語名
-        self.feature_names_jp = {
-            "weeks_on_chart": "チャート登場週数",
-            "total_streams": "総再生数",
-            "best_rank": "最高順位",
-            "avg_rank": "平均順位",
-            "top10_weeks": "Top10入り週数",
-            "top1_weeks": "1位獲得週数",
-            "has_spotify_data": "Spotifyデータ有無",
-            "past_appearances": "過去出場回数",
-            "prev_year_appeared": "前年出場",
-            "consecutive_years": "連続出場年数",
-        }
 
     def get_output_files(self) -> list[Path]:
         return [
@@ -154,7 +137,6 @@ class Step6Pipeline(DataPipeline):
         shap_importance = np.abs(shap_values).mean(axis=0)
         df_shap_importance = pd.DataFrame({
             "feature": self.feature_cols,
-            "feature_jp": [self.feature_names_jp[f] for f in self.feature_cols],
             "mean_abs_shap": shap_importance,
             "importance_pct": shap_importance / shap_importance.sum() * 100,
         }).sort_values("mean_abs_shap", ascending=False)
@@ -162,7 +144,7 @@ class Step6Pipeline(DataPipeline):
         print("\n  SHAP値ベース特徴量重要度ランキング:")
         for _, row in df_shap_importance.iterrows():
             bar = "#" * int(row["importance_pct"] / 2)
-            print(f"    {row['feature_jp']:15s}: {row['importance_pct']:5.1f}% {bar}")
+            print(f"    {row['feature']:20s}: {row['importance_pct']:5.1f}% {bar}")
 
         importance_path = self.analysis_dir / "shap_importance.csv"
         df_shap_importance.to_csv(importance_path, index=False, encoding="utf-8-sig")
@@ -182,7 +164,7 @@ class Step6Pipeline(DataPipeline):
                 feature_names=self.feature_cols,
                 show=False,
             )
-            plt.title(f"SHAP Dependence: {self.feature_names_jp[feature]}")
+            plt.title(f"SHAP Dependence: {feature}")
             plt.tight_layout()
             dep_path = self.analysis_dir / f"shap_dependence_{feature}.png"
             plt.savefig(dep_path, dpi=150, bbox_inches="tight")
@@ -238,7 +220,7 @@ class Step6Pipeline(DataPipeline):
                     value = row[feature]
                     shap_val = artist_shap[i]
                     direction = "+" if shap_val > 0 else "-"
-                    print(f"      {self.feature_names_jp[feature]}: {value:.0f} ({direction}{abs(shap_val):.3f})")
+                    print(f"      {feature}: {value:.0f} ({direction}{abs(shap_val):.3f})")
 
         print(f"\n{'='*60}")
         print("Step 6 完了")
