@@ -75,6 +75,11 @@ dmypy.json
 
 # User Setting
 .sync-exclude.lst
-.cache 
-data/analysis
-data/mapping
+.cache
+
+# Data（生成ファイル）
+data/raw/
+data/intermediate/
+data/processed/
+data/models/
+data/analysis/
