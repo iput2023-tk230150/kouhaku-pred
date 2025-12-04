@@ -14,6 +14,7 @@ dependencies = [
     "shap>=0.49.1",
     "matplotlib>=3.10.7",
     "lightgbm>=4.6.0",
+    "dotenv>=0.9.9",
 ]
 
 [project.scripts]
