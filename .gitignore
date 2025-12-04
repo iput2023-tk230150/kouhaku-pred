@@ -36,15 +36,8 @@ env/
 *~
 
 # データファイル（大容量のため除外）
-data/
 
 # モデルファイル
-models/*.pkl
-models/*.joblib
-models/*.h5
-models/*.pt
-models/*.pth
-!models/.gitkeep
 
 # Jupyter Notebook
 .ipynb_checkpoints/
