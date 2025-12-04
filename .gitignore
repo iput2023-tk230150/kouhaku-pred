@@ -36,11 +36,7 @@ env/
 *~
 
 # データファイル（大容量のため除外）
-data/*.csv
-data/*.json
-data/*.html
-!data/.gitkeep
-!data/README.md
+data/
 
 # モデルファイル
 models/*.pkl
