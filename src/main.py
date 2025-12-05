@@ -1,7 +1,7 @@
 """
 紅白予測システム パイプライン制御スクリプト
 ==========================================
-Step1-6を順次実行し、データ収集からモデル学習・分析まで行う
+Step1-7を順次実行し、データ収集からモデル学習・予測まで行う
 
 使い方:
     python main.py                    # 全ステップ実行
@@ -22,6 +22,7 @@ from collectors.step3_get_kouhaku_artists import Step3Pipeline
 from processing.step4_create_learning_data import Step4Pipeline
 from modeling.step5_train_model import Step5Pipeline
 from modeling.step6_shap_analysis import Step6Pipeline
+from modeling.step7_predict_2025 import Step7Pipeline
 
 
 # パイプライン定義
@@ -32,6 +33,7 @@ PIPELINES = {
     4: ("Step 4: 学習データ作成", Step4Pipeline),
     5: ("Step 5: モデル学習", Step5Pipeline),
     6: ("Step 6: SHAP分析", Step6Pipeline),
+    7: ("Step 7: 2025年予測", Step7Pipeline),
 }
 
 
