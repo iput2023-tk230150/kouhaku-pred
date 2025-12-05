@@ -39,35 +39,42 @@ cd src
 uv pip install -e .
 ```
 
-### データ収集
+### パイプライン実行
 
 ```bash
-# 全ステップ実行（Step1～4）
-python main.py
+cd src
 
-# または個別実行
-step1  # 曲リスト取得
-step2  # 週次データ取得（数時間かかります）
-step3  # 紅白出場者リスト取得
-step4  # 学習データ作成
+# 全ステップ実行（Step1〜6）
+uv run python main.py
+
+# 個別実行
+uv run python -m collectors.step1_get_song_list    # 曲リスト取得
+uv run python -m collectors.step2_get_weekly_data  # 週次データ取得（数時間かかります）
+uv run python -m collectors.step3_get_kouhaku_artists  # 紅白出場者リスト取得
+uv run python -m processing.step4_create_learning_data # 学習データ作成
+uv run python -m modeling.step5_train_model        # モデル学習
+uv run python -m modeling.step6_shap_analysis      # SHAP分析
 ```
-
-詳細な使い方は [src/README.md](src/README.md) を参照してください。
 
 ## 📁 プロジェクト構成
 
 ```
-kouhaku-predictor/
-├── src/                  # メインのPythonパッケージ
-│   ├── kouhaku/         # コアモジュール（正規化、マッピング、パイプライン）
-│   ├── scripts/         # データ収集スクリプト（Step1-4）
-│   ├── ref/             # 補助ツール
+kouhaku-pred/
+├── src/
+│   ├── core/            # パイプライン基底クラス
+│   ├── collectors/      # データ収集（Step 1-3）
+│   ├── processing/      # データ加工（Step 4）
+│   ├── modeling/        # モデル学習・分析（Step 5-7）
+│   ├── utils/           # 正規化・マッピングユーティリティ
+│   ├── tools/           # デバッグ・補助ツール
 │   ├── main.py          # パイプライン制御
 │   └── config.toml      # 設定ファイル
-├── data/                # 収集データ（.gitignoreで除外）
-├── notebooks/           # 分析用Jupyter notebook
-├── models/              # 学習済みモデル
-└── docs/                # 追加ドキュメント
+└── data/                # 収集データ（.gitignoreで除外）
+    ├── raw/             # Step 1-3の出力（スクレイピングデータ）
+    ├── intermediate/    # マッピング作業用の中間ファイル
+    ├── processed/       # Step 4の出力（learning_data.csv）
+    ├── models/          # Step 5の出力（model.pkl）
+    └── analysis/        # Step 5-6の分析結果（CSV, PNG）
 ```
 
 ## 🔄 データパイプライン
@@ -81,7 +88,11 @@ Step 3: 紅白出場者リスト取得 (Wikipedia)
    ↓
 Step 4: 学習データ作成
    ↓
-学習データ (data/learning_data.csv)
+Step 5: モデル学習 (LightGBM)
+   ↓
+Step 6: SHAP分析
+   ↓
+分析結果 (data/analysis/)
 ```
 
 ## 🛠️ 設定のカスタマイズ
@@ -103,18 +114,16 @@ Step 4: 学習データ作成
 
 ## 🤖 今後の実装（TODO）
 
-- [ ] Step 5: モデル学習（LightGBM/XGBoost）
-- [ ] Step 6: Feature Importance分析
-- [ ] Step 7: 2025年予測
-- [ ] 時系列クロスバリデーション
-- [ ] SHAP値による解釈可能性分析
+- [x] Step 5: モデル学習（LightGBM）
+- [x] Step 6: SHAP分析
+- [ ] Step 7: 2025年予測をパイプラインに統合
 
 ## ⚠️ 注意事項
 
 ### データ収集について
 
 - kworb.netのデータ使用は同サイトのFAQで許可されています
-- 適切なリクエスト間隔（デフォルト2秒）を設定しています
+- 適切なリクエスト間隔（デフォルト1秒）を設定しています
 - 学術研究・個人利用目的での使用を想定しています
 
 ### 制限事項
@@ -127,24 +136,11 @@ Step 4: 学習データ作成
 
 MIT License - 詳細は [LICENSE](LICENSE) を参照
 
-## 🤝 貢献
-
-Issue、Pull Requestを歓迎します。
-
-- バグ報告
-- 新機能の提案
-- ドキュメントの改善
-- コードの最適化
-
 ## 📚 参考資料
 
 - [CLAUDE.md](CLAUDE.md): Claude Code用のプロジェクトガイド
 - [src/README.md](src/README.md): 詳細な使用方法
 - [data/README.md](data/README.md): データファイルの説明
-
-## 👤 作者
-
-- GitHub: [@yourusername](https://github.com/yourusername)
 
 ## 🙏 謝辞
 
