@@ -4,7 +4,8 @@ Step 3: 紅白出場者リスト取得スクリプト
 WikipediaのMediaWiki APIを使用して紅白歌合戦の出場者リストを取得
 
 出力:
-- data/raw/kouhaku/kouhaku_artists.csv: 年別出場者リスト（year, artist）
+- data/raw/kouhaku/kouhaku_artists.csv: 年別出場者リスト（year, artist, group）
+  - group: 紅組/白組
 """
 
 import sys
@@ -94,6 +95,7 @@ class Step3Pipeline(DataPipeline):
     ) -> list[dict]:
         """
         開催後形式のパース（曲順・歌手名カラムを持つテーブル）
+        「組」列から紅組・白組を判定
         """
         artists = []
         seen = set()
@@ -109,14 +111,17 @@ class Step3Pipeline(DataPipeline):
             header_cells = rows[0].find_all(["th", "td"])
             headers = [c.get_text(strip=True) for c in header_cells]
 
-            # 「曲順」と「歌手名」カラムを探す
+            # 「曲順」「歌手名」「組」カラムを探す
             order_idx = None
             singer_idx = None
+            group_idx = None
             for i, h in enumerate(headers):
                 if h == "曲順":
                     order_idx = i
                 if h == "歌手名":
                     singer_idx = i
+                if h == "組":
+                    group_idx = i
 
             if singer_idx is None or order_idx is None:
                 continue
@@ -132,15 +137,25 @@ class Step3Pipeline(DataPipeline):
                 if not order_text.isdigit():
                     continue
 
+                # 組を判定
+                group = None
+                if group_idx is not None and len(cells) > group_idx:
+                    group_text = cells[group_idx].get_text(strip=True)
+                    if "紅" in group_text:
+                        group = "紅組"
+                    elif "白" in group_text:
+                        group = "白組"
+
                 cell = cells[singer_idx]
-                self._extract_artists_from_cell(cell, year, seen, artists)
+                self._extract_artists_from_cell(cell, year, seen, artists, group)
 
         return artists
 
     def _parse_pre_broadcast_format(self, soup: BeautifulSoup, year: int) -> list[dict]:
         """
         開催前形式のパース（紅組・白組が横並びのテーブル）
-        ヘッダーが「紅組」「白組」の2列構成
+        ヘッダーが「紅組」「白組」の2列構成（colspan=2で各2列分）
+        データ行は4列: [紅組歌手, 回, 白組歌手, 回]
         """
         artists = []
         seen = set()
@@ -160,6 +175,30 @@ class Step3Pipeline(DataPipeline):
             if not ("紅組" in headers and "白組" in headers):
                 continue
 
+            # colspanを考慮して実際の列位置を計算
+            # ヘッダー行: [紅組(colspan=2), 白組(colspan=2)]
+            # データ行: [紅組歌手, 回, 白組歌手, 回]
+            actual_col_positions = []
+            current_pos = 0
+            for cell in header_cells:
+                text = cell.get_text(strip=True)
+                colspan = int(cell.get("colspan", 1))
+                actual_col_positions.append({
+                    "text": text,
+                    "start": current_pos,
+                    "end": current_pos + colspan
+                })
+                current_pos += colspan
+
+            # 紅組・白組の実際の列範囲を特定
+            red_col_range = None
+            white_col_range = None
+            for pos_info in actual_col_positions:
+                if "紅組" in pos_info["text"]:
+                    red_col_range = (pos_info["start"], pos_info["end"])
+                if "白組" in pos_info["text"]:
+                    white_col_range = (pos_info["start"], pos_info["end"])
+
             # サブヘッダー行（「歌手名」「回」など）をスキップ
             data_start_idx = 1
             if len(rows) > 1:
@@ -167,16 +206,28 @@ class Step3Pipeline(DataPipeline):
                 if "歌手名" in second_row_text or "回" in second_row_text:
                     data_start_idx = 2
 
-            # データ行を処理（各行の全セルからアーティストを抽出）
+            # データ行を処理
             for row in rows[data_start_idx:]:
                 cells = row.find_all(["td", "th"])
-                for cell in cells:
-                    self._extract_artists_from_cell(cell, year, seen, artists)
+                for col_idx, cell in enumerate(cells):
+                    # 特別企画枠（背景色Khaki）をスキップ
+                    style = cell.get("style", "")
+                    if "khaki" in style.lower():
+                        continue
+
+                    # 列インデックスから紅組・白組を判定
+                    group = None
+                    if red_col_range and red_col_range[0] <= col_idx < red_col_range[1]:
+                        group = "紅組"
+                    elif white_col_range and white_col_range[0] <= col_idx < white_col_range[1]:
+                        group = "白組"
+
+                    self._extract_artists_from_cell(cell, year, seen, artists, group)
 
         return artists
 
     def _extract_artists_from_cell(
-        self, cell, year: int, seen: set, artists: list[dict]
+        self, cell, year: int, seen: set, artists: list[dict], group: str | None = None
     ) -> None:
         """
         セルからアーティスト名を抽出して追加
@@ -186,6 +237,7 @@ class Step3Pipeline(DataPipeline):
             year: 対象年
             seen: 既出アーティスト名のセット
             artists: アーティストリスト（追加先）
+            group: 紅組/白組（Noneの場合は不明）
         """
         links = cell.find_all("a")
         for link in links:
@@ -212,6 +264,7 @@ class Step3Pipeline(DataPipeline):
                 {
                     "year": year,
                     "artist": name,
+                    "group": group,
                 }
             )
 
@@ -235,6 +288,14 @@ class Step3Pipeline(DataPipeline):
             print(f"  取得アーティスト数: {len(artists)}")
 
             if artists:
+                # 紅組・白組の内訳
+                red_count = sum(1 for a in artists if a.get("group") == "紅組")
+                white_count = sum(1 for a in artists if a.get("group") == "白組")
+                unknown_count = len(artists) - red_count - white_count
+                print(f"  紅組: {red_count}, 白組: {white_count}", end="")
+                if unknown_count > 0:
+                    print(f", 不明: {unknown_count}", end="")
+                print()
                 sample = [a["artist"] for a in artists[:5]]
                 print(f"  サンプル: {sample}")
 
