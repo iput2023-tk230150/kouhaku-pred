@@ -44,7 +44,7 @@ uv pip install -e .
 ```bash
 cd src
 
-# 全ステップ実行（Step1〜6）
+# 全ステップ実行（Step1〜7）
 uv run python main.py
 
 # 個別実行
@@ -54,6 +54,7 @@ uv run python -m collectors.step3_get_kouhaku_artists  # 紅白出場者リス�
 uv run python -m processing.step4_create_learning_data # 学習データ作成
 uv run python -m modeling.step5_train_model        # モデル学習
 uv run python -m modeling.step6_shap_analysis      # SHAP分析
+uv run python -m modeling.step7_predict_2025       # 2025年予測
 ```
 
 ## 📁 プロジェクト構成
@@ -92,7 +93,9 @@ Step 5: モデル学習 (LightGBM)
    ↓
 Step 6: SHAP分析
    ↓
-分析結果 (data/analysis/)
+Step 7: 2025年予測
+   ↓
+予測結果 (data/analysis/predictions_2025.csv)
 ```
 
 ## 🛠️ 設定のカスタマイズ
@@ -116,7 +119,7 @@ Step 6: SHAP分析
 
 - [x] Step 5: モデル学習（LightGBM）
 - [x] Step 6: SHAP分析
-- [ ] Step 7: 2025年予測をパイプラインに統合
+- [x] Step 7: 2025年予測
 
 ## ⚠️ 注意事項
 
