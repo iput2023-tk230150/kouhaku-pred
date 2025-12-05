@@ -67,8 +67,9 @@ class Step3Pipeline(DataPipeline):
 
     def parse_kouhaku_artists(self, html: str, year: int) -> list[dict]:
         """
-        「歌手名」カラムを持つwikitableから歌手名を抽出
-        曲順が数字の行のみ取得（企画枠を除外）
+        Wikipediaの紅白歌合戦ページから歌手名を抽出
+        開催後（曲順・歌手名カラム形式）と開催前（紅組・白組横並び形式）の
+        両方の構造に対応
 
         Args:
             html: WikipediaページのHTML
@@ -78,10 +79,25 @@ class Step3Pipeline(DataPipeline):
             アーティスト情報の辞書のリスト
         """
         soup = BeautifulSoup(html, "html.parser")
+
+        # まず開催後形式（曲順・歌手名カラム）を試す
+        artists = self._parse_post_broadcast_format(soup, year)
+
+        # 取得できなければ開催前形式（紅組・白組横並び）を試す
+        if not artists:
+            artists = self._parse_pre_broadcast_format(soup, year)
+
+        return artists
+
+    def _parse_post_broadcast_format(
+        self, soup: BeautifulSoup, year: int
+    ) -> list[dict]:
+        """
+        開催後形式のパース（曲順・歌手名カラムを持つテーブル）
+        """
         artists = []
         seen = set()
 
-        # 全wikitableを走査
         tables = soup.find_all("table", class_="wikitable")
 
         for table in tables:
@@ -117,31 +133,87 @@ class Step3Pipeline(DataPipeline):
                     continue
 
                 cell = cells[singer_idx]
-
-                # セル内のリンクから歌手名を取得
-                links = cell.find_all("a")
-                for link in links:
-                    name = link.get_text(strip=True)
-
-                    # フィルタ
-                    if not name:
-                        continue
-                    if name.startswith("["):  # 注釈リンク
-                        continue
-                    if len(name) < 2:
-                        continue
-                    if name in seen:
-                        continue
-
-                    seen.add(name)
-                    artists.append(
-                        {
-                            "year": year,
-                            "artist": name,
-                        }
-                    )
+                self._extract_artists_from_cell(cell, year, seen, artists)
 
         return artists
+
+    def _parse_pre_broadcast_format(self, soup: BeautifulSoup, year: int) -> list[dict]:
+        """
+        開催前形式のパース（紅組・白組が横並びのテーブル）
+        ヘッダーが「紅組」「白組」の2列構成
+        """
+        artists = []
+        seen = set()
+
+        tables = soup.find_all("table", class_="wikitable")
+
+        for table in tables:
+            rows = table.find_all("tr")
+            if not rows:
+                continue
+
+            # ヘッダー行を確認（「紅組」「白組」を探す）
+            header_cells = rows[0].find_all(["th", "td"])
+            headers = [c.get_text(strip=True) for c in header_cells]
+
+            # 紅組・白組の横並び形式かチェック
+            if not ("紅組" in headers and "白組" in headers):
+                continue
+
+            # サブヘッダー行（「歌手名」「回」など）をスキップ
+            data_start_idx = 1
+            if len(rows) > 1:
+                second_row_text = rows[1].get_text(strip=True)
+                if "歌手名" in second_row_text or "回" in second_row_text:
+                    data_start_idx = 2
+
+            # データ行を処理（各行の全セルからアーティストを抽出）
+            for row in rows[data_start_idx:]:
+                cells = row.find_all(["td", "th"])
+                for cell in cells:
+                    self._extract_artists_from_cell(cell, year, seen, artists)
+
+        return artists
+
+    def _extract_artists_from_cell(
+        self, cell, year: int, seen: set, artists: list[dict]
+    ) -> None:
+        """
+        セルからアーティスト名を抽出して追加
+
+        Args:
+            cell: BeautifulSoupのセル要素
+            year: 対象年
+            seen: 既出アーティスト名のセット
+            artists: アーティストリスト（追加先）
+        """
+        links = cell.find_all("a")
+        for link in links:
+            name = link.get_text(strip=True)
+
+            # フィルタ
+            if not name:
+                continue
+            if name.startswith("["):  # 注釈リンク
+                continue
+            if len(name) < 2:
+                continue
+            # 数字のみ（出場回数など）をスキップ
+            if name.isdigit():
+                continue
+            # 「初」などの出場回数表記をスキップ
+            if name in ("初", "返り咲き"):
+                continue
+            if name in seen:
+                continue
+
+            seen.add(name)
+            artists.append(
+                {
+                    "year": year,
+                    "artist": name,
+                }
+            )
 
     def execute(self) -> bool:
         """パイプライン実行"""
