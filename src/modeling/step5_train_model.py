@@ -13,9 +13,10 @@ LightGBMを使用して紅白出場予測モデルを学習
 - data/analysis/predictions_2024.csv: 2024年予測結果
 
 評価方法:
-- 時系列CV: 過去の年で学習し、未来を予測
-  例: 2020-2022で学習 → 2023を予測
-      2020-2023で学習 → 2024を予測
+- 時系列CV: 過去5年分のデータで学習し、翌年を予測
+  例: 2015-2019で学習 → 2020を予測
+      2016-2020で学習 → 2021を予測
+- 評価指標: Accuracy, F1-score, AUC-ROC
 """
 
 import sys
@@ -29,6 +30,7 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     f1_score,
+    roc_auc_score,
     confusion_matrix,
     classification_report,
 )
@@ -109,16 +111,25 @@ class Step5Pipeline(DataPipeline):
 
         # ========== [2] 時系列CV ==========
         print("\n[2] 時系列クロスバリデーション")
-        print("  訓練: 過去の年 → テスト: 翌年")
+        print("  訓練: 過去5年分 → テスト: 翌年")
 
         cv_results = []
+        train_window = 5  # 過去5年分で学習
+
+        # 予測対象年: 2020〜2024
+        test_years = [y for y in range(2020, 2025) if y in available_years]
+        print(f"  予測対象年: {test_years}")
 
         # 各テスト年について評価
-        for i in range(1, len(available_years)):
-            train_years = available_years[:i]
-            test_year = available_years[i]
+        for fold_idx, test_year in enumerate(test_years, 1):
+            # 過去5年分を訓練データとする
+            train_years = [y for y in range(test_year - train_window, test_year) if y in df["year"].unique()]
 
-            print(f"\n  --- Fold {i}: 訓練={train_years}, テスト={test_year} ---")
+            if len(train_years) == 0:
+                print(f"\n  --- Fold {fold_idx}: テスト={test_year} → スキップ（訓練データなし）---")
+                continue
+
+            print(f"\n  --- Fold {fold_idx}: 訓練={train_years}, テスト={test_year} ---")
 
             # 訓練・テストデータ分割
             df_train = df[df["year"].isin(train_years)]
@@ -156,11 +167,13 @@ class Step5Pipeline(DataPipeline):
             precision = precision_score(y_test, y_pred, zero_division=0)
             recall = recall_score(y_test, y_pred, zero_division=0)
             f1 = f1_score(y_test, y_pred, zero_division=0)
+            auc_roc = roc_auc_score(y_test, y_prob)
 
             print(f"    Accuracy:  {accuracy:.3f}")
             print(f"    Precision: {precision:.3f}")
             print(f"    Recall:    {recall:.3f}")
             print(f"    F1-score:  {f1:.3f}")
+            print(f"    AUC-ROC:   {auc_roc:.3f}")
 
             # 混同行列
             cm = confusion_matrix(y_test, y_pred)
@@ -169,7 +182,7 @@ class Step5Pipeline(DataPipeline):
 
             cv_results.append(
                 {
-                    "fold": i,
+                    "fold": fold_idx,
                     "train_years": str(train_years),
                     "test_year": test_year,
                     "train_size": len(X_train),
@@ -178,6 +191,7 @@ class Step5Pipeline(DataPipeline):
                     "precision": precision,
                     "recall": recall,
                     "f1": f1,
+                    "auc_roc": auc_roc,
                     "true_negatives": tn,
                     "false_positives": fp,
                     "false_negatives": fn,
@@ -194,6 +208,7 @@ class Step5Pipeline(DataPipeline):
         print(f"    Precision: {df_cv['precision'].mean():.3f} ± {df_cv['precision'].std():.3f}")
         print(f"    Recall:    {df_cv['recall'].mean():.3f} ± {df_cv['recall'].std():.3f}")
         print(f"    F1-score:  {df_cv['f1'].mean():.3f} ± {df_cv['f1'].std():.3f}")
+        print(f"    AUC-ROC:   {df_cv['auc_roc'].mean():.3f} ± {df_cv['auc_roc'].std():.3f}")
 
         # 評価結果保存
         eval_path = self.analysis_dir / "evaluation_results.csv"
