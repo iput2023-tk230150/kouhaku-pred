@@ -73,6 +73,36 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
         headers = [c.get_text(strip=True) for c in header_cells]
         print(f"ヘッダー ({len(headers)}列): {headers}")
 
+        # colspanを確認
+        for j, cell in enumerate(header_cells):
+            colspan = cell.get("colspan")
+            rowspan = cell.get("rowspan")
+            text = cell.get_text(strip=True)
+            if colspan or rowspan:
+                print(f"  セル{j} '{text}': colspan={colspan}, rowspan={rowspan}")
+
+        # 紅組・白組が含まれているかチェック
+        if "紅組" in headers or "白組" in headers:
+            print(f"\n  *** 紅組/白組横並びテーブルを発見 ***")
+
+            # 全行を分析（背景色を確認）
+            for row_idx, row in enumerate(rows):
+                cells = row.find_all(["td", "th"])
+                # 行のstyle属性を確認
+                row_style = row.get("style", "")
+                row_bg = row.get("bgcolor", "")
+
+                for cell_idx, cell in enumerate(cells):
+                    text = cell.get_text(strip=True)[:30]
+                    style = cell.get("style", "")
+                    bgcolor = cell.get("bgcolor", "")
+
+                    # 背景色がある場合のみ表示
+                    if style or bgcolor or row_style or row_bg:
+                        links = cell.find_all("a")
+                        link_texts = [a.get_text(strip=True) for a in links[:3]]
+                        print(f"  行{row_idx}[{cell_idx}] '{text}' style='{style}' bgcolor='{bgcolor}' row_style='{row_style}' links={link_texts}")
+
         # 「曲順」と「歌手名」カラムを探す
         order_idx = None
         singer_idx = None
