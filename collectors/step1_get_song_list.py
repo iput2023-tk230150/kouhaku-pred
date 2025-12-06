@@ -174,7 +174,7 @@ class Step1Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step1Pipeline(config, data_dir)
     success = pipeline.execute()

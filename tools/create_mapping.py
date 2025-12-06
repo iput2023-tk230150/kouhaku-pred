@@ -32,7 +32,7 @@ def main():
     # データ読み込み
     try:
         # プロジェクトルートのデータファイルを読み込む (src/tools/ → src/ → kouhaku-pred/)
-        project_root = Path(__file__).parent.parent.parent
+        project_root = Path(__file__).parent.parent
         df_spotify = pd.read_csv(project_root / "data" / "jp_yearly_stats.csv")
         df_kouhaku = pd.read_csv(project_root / "data" / "kouhaku_artists.csv")
     except FileNotFoundError as e:

@@ -90,7 +90,7 @@ def analyze_page(url: str):
         print(f"総行数: {len(rows)}")
 
     # HTMLを保存（デバッグ用）
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent.parent
     debug_file = project_root / "debug_page_structure.html"
     with open(debug_file, "w", encoding="utf-8") as f:
         f.write(resp.text)

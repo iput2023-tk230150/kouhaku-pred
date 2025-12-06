@@ -22,7 +22,7 @@ from collectors.step3_get_kouhaku_artists import Step3Pipeline
 from processing.step4_create_learning_data import Step4Pipeline
 from modeling.step5_train_model import Step5Pipeline
 from modeling.step6_shap_analysis import Step6Pipeline
-from modeling.step7_predict_2025 import Step7Pipeline
+from prediction.step7_predict_2025 import Step7Pipeline
 
 
 # パイプライン定義
@@ -186,8 +186,8 @@ def main():
         print(f"設定ファイル読み込みエラー: {e}")
         sys.exit(1)
 
-    # データディレクトリ
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    # データディレクトリ（プロジェクトルート直下）
+    data_dir = Path(__file__).parent / config["paths"]["data_dir"]
 
     # パイプライン実行
     exit_code = run_pipeline(config, data_dir, args.skip_dependency_check)

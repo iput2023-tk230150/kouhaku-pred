@@ -32,17 +32,16 @@ NHK紅白歌合戦の出場者選考において、どの指標（ストリー�
 ```bash
 # リポジトリをクローン
 git clone https://github.com/yourusername/kouhaku-predictor.git
-cd kouhaku-predictor
+cd kouhaku-predictor/kouhaku-pred
 
 # パッケージをインストール
-cd src
 uv pip install -e .
 ```
 
 ### パイプライン実行
 
 ```bash
-cd src
+cd kouhaku-pred
 
 # 全ステップ実行（Step1〜7）
 uv run python main.py
@@ -54,28 +53,32 @@ uv run python -m collectors.step3_get_kouhaku_artists  # 紅白出場者リス�
 uv run python -m processing.step4_create_learning_data # 学習データ作成
 uv run python -m modeling.step5_train_model        # モデル学習
 uv run python -m modeling.step6_shap_analysis      # SHAP分析
-uv run python -m modeling.step7_predict_2025       # 2025年予測
+uv run python -m prediction.step7_predict_2025     # 2025年予測
 ```
 
 ## 📁 プロジェクト構成
 
 ```
 kouhaku-pred/
-├── src/
-│   ├── core/            # パイプライン基底クラス
-│   ├── collectors/      # データ収集（Step 1-3）
-│   ├── processing/      # データ加工（Step 4）
-│   ├── modeling/        # モデル学習・分析（Step 5-7）
-│   ├── utils/           # 正規化・マッピングユーティリティ
-│   ├── tools/           # デバッグ・補助ツール
-│   ├── main.py          # パイプライン制御
-│   └── config.toml      # 設定ファイル
+├── main.py              # パイプライン制御
+├── config.toml          # 設定ファイル
+├── pyproject.toml       # プロジェクト設定
+│
+├── core/                # パイプライン基底クラス
+├── collectors/          # データ収集（Step 1-3）
+├── processing/          # データ加工（Step 4）
+├── modeling/            # モデル学習・分析（Step 5-6）
+├── prediction/          # 最終予測（Step 7）
+├── utils/               # 正規化・マッピングユーティリティ
+├── tools/               # デバッグ・補助ツール
+│
+├── models/              # 学習済みモデル（model.pkl）
+├── tmp/                 # ツール出力用一時ファイル
+│
 └── data/                # 収集データ（.gitignoreで除外）
     ├── raw/             # Step 1-3の出力（スクレイピングデータ）
-    ├── intermediate/    # マッピング作業用の中間ファイル
     ├── processed/       # Step 4の出力（learning_data.csv）
-    ├── models/          # Step 5の出力（model.pkl）
-    └── analysis/        # Step 5-6の分析結果（CSV, PNG）
+    └── analysis/        # Step 5-7の分析結果（CSV, PNG）
 ```
 
 ## 🔄 データパイプライン
@@ -100,7 +103,7 @@ Step 7: 2025年予測
 
 ## 🛠️ 設定のカスタマイズ
 
-`src/config.toml` で以下を調整できます：
+`config.toml` で以下を調整できます：
 
 - **target_years**: データ収集対象年
 - **top_n_songs**: Step2の取得曲数制限（テスト時は100推奨、本番はNone）
@@ -138,12 +141,6 @@ Step 7: 2025年予測
 ## 📝 ライセンス
 
 MIT License - 詳細は [LICENSE](LICENSE) を参照
-
-## 📚 参考資料
-
-- [CLAUDE.md](CLAUDE.md): Claude Code用のプロジェクトガイド
-- [src/README.md](src/README.md): 詳細な使用方法
-- [data/README.md](data/README.md): データファイルの説明
 
 ## 🙏 謝辞
 

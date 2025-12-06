@@ -199,7 +199,7 @@ def should_auto_match(kouhaku_name: str, candidates: list[dict]) -> dict | None:
 
 
 def main():
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent.parent
 
     # 出力ディレクトリ
     output_dir = project_root / "data" / "mapping"

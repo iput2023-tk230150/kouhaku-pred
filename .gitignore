@@ -79,7 +79,8 @@ dmypy.json
 
 # Data（生成ファイル）
 data/raw/
-data/intermediate/
 data/processed/
-data/models/
 data/analysis/
+
+# 学習済みモデル
+models/

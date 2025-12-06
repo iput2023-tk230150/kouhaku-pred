@@ -7,7 +7,7 @@ LightGBMを使用して紅白出場予測モデルを学習
 - data/processed/learning_data.csv: 学習データ
 
 出力:
-- data/models/model.pkl: 学習済みモデル
+- models/model.pkl: 学習済みモデル
 - data/analysis/feature_importance.csv: 特徴量重要度
 - data/analysis/evaluation_results.csv: 評価結果
 - data/analysis/predictions_2024.csv: 2024年予測結果
@@ -45,7 +45,9 @@ class Step5Pipeline(DataPipeline):
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
         self.processed_dir = data_dir / "processed"
-        self.models_dir = data_dir / "models"
+        # models_dirはdata_dirの外（プロジェクトルート直下）
+        project_root = data_dir.parent
+        self.models_dir = project_root / config["paths"]["models_dir"]
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
@@ -330,7 +332,7 @@ class Step5Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step5Pipeline(config, data_dir)
     success = pipeline.execute()

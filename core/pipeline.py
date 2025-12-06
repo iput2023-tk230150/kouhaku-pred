@@ -78,7 +78,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         設定辞書
     """
     if config_path is None:
-        # デフォルトパス: src/config.toml
+        # デフォルトパス: プロジェクトルート/config.toml
         config_path = Path(__file__).parent.parent / "config.toml"
 
     if not config_path.exists():

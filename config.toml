@@ -3,6 +3,8 @@
 
 [paths]
 data_dir = "data"
+models_dir = "models"
+tmp_dir = "tmp"
 ref_dir = "ref"
 
 [data_collection]

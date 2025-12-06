@@ -4,7 +4,7 @@ Step 6: SHAP値分析スクリプト
 学習済みモデルの解釈可能性を高めるためのSHAP値分析
 
 入力:
-- data/models/model.pkl: 学習済みモデル
+- models/model.pkl: 学習済みモデル
 - data/processed/learning_data.csv: 学習データ
 
 出力:
@@ -32,7 +32,9 @@ class Step6Pipeline(DataPipeline):
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
         self.processed_dir = data_dir / "processed"
-        self.models_dir = data_dir / "models"
+        # models_dirはdata_dirの外（プロジェクトルート直下）
+        project_root = data_dir.parent
+        self.models_dir = project_root / config["paths"]["models_dir"]
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
@@ -233,7 +235,7 @@ class Step6Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step6Pipeline(config, data_dir)
     success = pipeline.execute()

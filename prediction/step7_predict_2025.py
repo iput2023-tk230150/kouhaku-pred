@@ -5,7 +5,7 @@ Step 7: 2025年紅白出場者予測スクリプト
 発表済みの出場者リストとの比較・精度評価も行う
 
 入力:
-- data/models/model.pkl: 学習済みモデル
+- models/model.pkl: 学習済みモデル
 - data/raw/spotify/jp_yearly_stats.csv: Spotifyデータ
 - data/raw/kouhaku/kouhaku_artists.csv: 紅白出場者リスト（2025年発表済み含む）
 
@@ -30,7 +30,9 @@ class Step7Pipeline(DataPipeline):
         super().__init__(config, data_dir)
         self.raw_spotify_dir = data_dir / "raw" / "spotify"
         self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
-        self.models_dir = data_dir / "models"
+        # models_dirはdata_dirの外（プロジェクトルート直下）
+        project_root = data_dir.parent
+        self.models_dir = project_root / config["paths"]["models_dir"]
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
@@ -293,7 +295,7 @@ class Step7Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step7Pipeline(config, data_dir)
     success = pipeline.execute()
