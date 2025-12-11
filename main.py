@@ -6,7 +6,9 @@ Step1-7を順次実行し、データ収集からモデル学習・予測まで�
 使い方:
     python main.py                    # 全ステップ実行
     python main.py --steps 1 2        # Step1,2のみ実行
-    python main.py --from 2           # Step2以降を実行
+    python main.py --start 3 --end 5  # Step3〜5を実行
+    python main.py --start 4          # Step4以降を実行
+    python main.py --end 3            # Step1〜3を実行
     python main.py --config custom.toml  # カスタム設定ファイル
 """
 
@@ -49,10 +51,11 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--from",
-        type=int,
-        dest="from_step",
-        help="指定ステップ以降を実行（例: --from 2）",
+        "--start", type=int, help="開始ステップ番号（例: --start 3）"
+    )
+
+    parser.add_argument(
+        "--end", type=int, help="終了ステップ番号（例: --end 5）"
     )
 
     parser.add_argument("--config", type=str, help="カスタム設定ファイルのパス")
@@ -68,11 +71,11 @@ def get_steps_to_execute(args) -> list[int]:
     """実行するステップのリストを取得"""
     if args.steps:
         return sorted(args.steps)
-    elif args.from_step:
-        return list(range(args.from_step, max(PIPELINES.keys()) + 1))
-    else:
-        # デフォルト: 全ステップ
-        return sorted(PIPELINES.keys())
+
+    # 範囲指定（--start / --end）
+    start = args.start or min(PIPELINES.keys())
+    end = args.end or max(PIPELINES.keys())
+    return list(range(start, end + 1))
 
 
 def run_pipeline(

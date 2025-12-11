@@ -274,6 +274,15 @@ class Step3Pipeline(DataPipeline):
         print("Step 3: 紅白出場者リスト取得")
         print("=" * 60)
 
+        # 既存ファイルがあればスキップ
+        output_file = self.get_output_files()[0]
+        if output_file.exists():
+            df = pd.read_csv(output_file)
+            print(f"\n既存データを使用: {output_file}")
+            print(f"  レコード数: {len(df)}件")
+            print("  再取得する場合はファイルを削除してください")
+            return True
+
         all_artists = []
 
         for year, kai in self.target_years.items():

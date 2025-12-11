@@ -173,7 +173,23 @@ class Step2Pipeline(DataPipeline):
         else:
             print(f"取得対象: 全 {len(df_songs)} 曲")
 
+        # 既存データの読み込み（差分取得用）
+        weekly_file = self.get_output_files()[0]
+        df_existing = None
+        existing_track_ids = set()
+        last_date = None
+
+        if weekly_file.exists():
+            df_existing = pd.read_csv(weekly_file)
+            existing_track_ids = set(df_existing["track_id"].unique())
+            last_date = pd.to_datetime(df_existing["date"]).max()
+            print(f"\n差分取得モード:")
+            print(f"  既存曲数: {len(existing_track_ids)}")
+            print(f"  最新日付: {last_date.strftime('%Y/%m/%d')}")
+
         all_weekly = []
+        new_track_count = 0
+        updated_track_count = 0
 
         print(f"\n取得開始...")
         print(f"対象年: {self.target_years}")
@@ -185,37 +201,69 @@ class Step2Pipeline(DataPipeline):
             artist = row["artist"]
             title = row["title"]
 
+            is_new_track = track_id not in existing_track_ids
+
             # 進捗表示
             if (idx + 1) % 10 == 0:
                 print(
-                    f"  {idx + 1}/{len(df_songs)} 処理中... (取得データ: {len(all_weekly)}件)"
+                    f"  {idx + 1}/{len(df_songs)} 処理中... "
+                    f"(新規: {new_track_count}, 更新: {updated_track_count})"
                 )
 
             weekly = self.get_track_weekly_jp(track_id)
 
             # 対象年のみフィルタ
+            filtered_weekly = []
             for w in weekly:
                 if w["year"] in self.target_years:
+                    # 差分取得: 既存曲は最新日付以降のみ
+                    if not is_new_track and last_date:
+                        w_date = pd.to_datetime(w["date"])
+                        if w_date <= last_date:
+                            continue
+
                     w["track_id"] = track_id
                     w["artist"] = artist
                     w["title"] = title
-                    all_weekly.append(w)
+                    filtered_weekly.append(w)
+
+            if filtered_weekly:
+                all_weekly.extend(filtered_weekly)
+                if is_new_track:
+                    new_track_count += 1
+                else:
+                    updated_track_count += 1
 
             time.sleep(self.interval)
 
-        print(f"\n取得完了: {len(all_weekly)} レコード")
+        print(f"\n取得完了:")
+        print(f"  新規曲: {new_track_count}")
+        print(f"  更新曲: {updated_track_count}")
+        print(f"  新規レコード: {len(all_weekly)}")
 
-        if not all_weekly:
+        # 差分なしの場合は既存データのまま集計のみ
+        if not all_weekly and df_existing is not None:
+            print("新規データなし。既存データで集計を更新します。")
+            df_weekly = df_existing
+        elif not all_weekly:
             print("データが取得できませんでした")
             return False
+        else:
+            # 既存データとマージ
+            df_new = pd.DataFrame(all_weekly)
+            if df_existing is not None:
+                df_weekly = pd.concat([df_existing, df_new], ignore_index=True)
+                # 重複削除（date + track_id で一意）
+                df_weekly = df_weekly.drop_duplicates(subset=["date", "track_id"])
+                # 日付でソート
+                df_weekly = df_weekly.sort_values(["date", "track_id"]).reset_index(drop=True)
+                print(f"マージ後レコード数: {len(df_weekly)}")
+            else:
+                df_weekly = df_new
 
-        # DataFrame作成
-        df_weekly = pd.DataFrame(all_weekly)
-
-        # 週次データ保存
-        weekly_file = self.get_output_files()[0]
-        df_weekly.to_csv(weekly_file, index=False, encoding="utf-8-sig")
-        print(f"保存: {weekly_file}")
+            # 週次データ保存
+            df_weekly.to_csv(weekly_file, index=False, encoding="utf-8-sig")
+            print(f"保存: {weekly_file}")
 
         # 年別・アーティスト別集計
         yearly_stats = (
