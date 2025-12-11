@@ -15,6 +15,7 @@ dependencies = [
     "matplotlib>=3.10.7",
     "lightgbm>=4.6.0",
     "dotenv>=0.9.9",
+    "ruff>=0.14.8",
 ]
 
 [project.scripts]
@@ -26,6 +27,11 @@ step1 = "collectors.step1_get_song_list:main"
 step2 = "collectors.step2_get_weekly_data:main"
 step3 = "collectors.step3_get_kouhaku_artists:main"
 step4 = "collectors.step4_create_learning_data:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.8",
+]
 
 # 補助ツールはref/ディレクトリから直接実行:
 #   uv run python ref/create_mapping.py

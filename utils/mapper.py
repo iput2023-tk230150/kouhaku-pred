@@ -288,13 +288,13 @@ class ArtistMapper:
         print("=" * 70)
         print(f"紅白アーティスト総数: {kouhaku_total}")
         print(
-            f"  - 自動マッチ成功: {len(matched)} ({100*len(matched)/kouhaku_total:.1f}%)"
+            f"  - 自動マッチ成功: {len(matched)} ({100 * len(matched) / kouhaku_total:.1f}%)"
         )
         print(
-            f"  - 類似度候補: {len(similar_candidates)} ({100*len(similar_candidates)/kouhaku_total:.1f}%)"
+            f"  - 類似度候補: {len(similar_candidates)} ({100 * len(similar_candidates) / kouhaku_total:.1f}%)"
         )
         print(
-            f"  - 未マッチ: {len(unmatched)} ({100*len(unmatched)/kouhaku_total:.1f}%)"
+            f"  - 未マッチ: {len(unmatched)} ({100 * len(unmatched) / kouhaku_total:.1f}%)"
         )
 
         if similar_candidates or unmatched:

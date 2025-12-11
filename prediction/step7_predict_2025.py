@@ -16,7 +16,6 @@ Step 7: 2025年紅白出場者予測スクリプト
 import sys
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import pickle
 from typing import Any
 
@@ -77,7 +76,7 @@ class Step7Pipeline(DataPipeline):
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
-            print(f"エラー: 依存ファイルが見つかりません:")
+            print("エラー: 依存ファイルが見つかりません:")
             for f in missing:
                 print(f"  - {f}")
             return False
@@ -204,7 +203,7 @@ class Step7Pipeline(DataPipeline):
 
         # 発表済み出場者がいる場合は比較表示
         if len(actual_artists_2025) > 0:
-            print(f"\n  Top 50 予測確率ランキング（発表済み出場者との比較）:")
+            print("\n  Top 50 予測確率ランキング（発表済み出場者との比較）:")
             print("-" * 80)
             print(
                 f"  {'順位':>4}  {'予測':>2} {'実際':>2} {'組':>4} {'アーティスト':20s} {'確率':>6} {'過去出場':>6}"
@@ -277,7 +276,7 @@ class Step7Pipeline(DataPipeline):
             min_rank = df_actual["pred_rank"].min()
             max_rank = df_actual["pred_rank"].max()
 
-            print(f"  発表済み出場者の予測順位:")
+            print("  発表済み出場者の予測順位:")
             print(f"    平均: {avg_rank:.1f}位")
             print(f"    中央値: {median_rank:.1f}位")
             print(f"    最高: {min_rank}位 / 最低: {max_rank}位")
@@ -292,10 +291,10 @@ class Step7Pipeline(DataPipeline):
 
             # モデル予測との一致
             predicted_correct = (df_actual["predicted"] == 1).sum()
-            print(f"\n  モデル出場予測との一致:")
+            print("\n  モデル出場予測との一致:")
             print(
                 f"    発表済み出場者のうち出場予測: {predicted_correct}/{len(df_actual)} "
-                f"({predicted_correct/len(df_actual)*100:.1f}%)"
+                f"({predicted_correct / len(df_actual) * 100:.1f}%)"
             )
 
         # ========== [8] 統計情報 ==========
@@ -305,7 +304,7 @@ class Step7Pipeline(DataPipeline):
         print(f"  うち紅白経験者: {int((df_predicted['past_appearances'] > 0).sum())}")
         print(f"  うち前年出場者: {int(df_predicted['prev_year_appeared'].sum())}")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Step 7 完了")
         print("=" * 60)
 

@@ -183,7 +183,7 @@ class Step2Pipeline(DataPipeline):
             df_existing = pd.read_csv(weekly_file)
             existing_track_ids = set(df_existing["track_id"].unique())
             last_date = pd.to_datetime(df_existing["date"]).max()
-            print(f"\n差分取得モード:")
+            print("\n差分取得モード:")
             print(f"  既存曲数: {len(existing_track_ids)}")
             print(f"  最新日付: {last_date.strftime('%Y/%m/%d')}")
 
@@ -191,7 +191,7 @@ class Step2Pipeline(DataPipeline):
         new_track_count = 0
         updated_track_count = 0
 
-        print(f"\n取得開始...")
+        print("\n取得開始...")
         print(f"対象年: {self.target_years}")
         print(f"リクエスト間隔: {self.interval}秒")
         print()
@@ -236,7 +236,7 @@ class Step2Pipeline(DataPipeline):
 
             time.sleep(self.interval)
 
-        print(f"\n取得完了:")
+        print("\n取得完了:")
         print(f"  新規曲: {new_track_count}")
         print(f"  更新曲: {updated_track_count}")
         print(f"  新規レコード: {len(all_weekly)}")
@@ -286,7 +286,7 @@ class Step2Pipeline(DataPipeline):
         print(f"保存: {stats_file}")
 
         # サマリー表示
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("年別・アーティスト別 ストリーム数ランキング（2024年）")
         print("=" * 60)
 

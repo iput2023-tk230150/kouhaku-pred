@@ -47,9 +47,9 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
     """
     Wikitableの構造を詳細に分析して出力
     """
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"【{year}年 第{kai}回 紅白歌合戦】")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table", class_="wikitable")
@@ -57,9 +57,9 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
     print(f"\n発見されたwikitableの数: {len(tables)}")
 
     for i, table in enumerate(tables):
-        print(f"\n{'-'*50}")
+        print(f"\n{'-' * 50}")
         print(f"テーブル #{i + 1}")
-        print(f"{'-'*50}")
+        print(f"{'-' * 50}")
 
         rows = table.find_all("tr")
         print(f"行数: {len(rows)}")
@@ -83,7 +83,7 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
 
         # 紅組・白組が含まれているかチェック
         if "紅組" in headers or "白組" in headers:
-            print(f"\n  *** 紅組/白組横並びテーブルを発見 ***")
+            print("\n  *** 紅組/白組横並びテーブルを発見 ***")
 
             # 全行を分析（背景色を確認）
             for row_idx, row in enumerate(rows):
@@ -101,7 +101,9 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
                     if style or bgcolor or row_style or row_bg:
                         links = cell.find_all("a")
                         link_texts = [a.get_text(strip=True) for a in links[:3]]
-                        print(f"  行{row_idx}[{cell_idx}] '{text}' style='{style}' bgcolor='{bgcolor}' row_style='{row_style}' links={link_texts}")
+                        print(
+                            f"  行{row_idx}[{cell_idx}] '{text}' style='{style}' bgcolor='{bgcolor}' row_style='{row_style}' links={link_texts}"
+                        )
 
         # 「曲順」と「歌手名」カラムを探す
         order_idx = None
@@ -121,15 +123,15 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
         is_artist_table = order_idx is not None and singer_idx is not None
 
         if is_artist_table:
-            print(f"\n  *** 出場者テーブルとして認識 ***")
+            print("\n  *** 出場者テーブルとして認識 ***")
 
             # 最初の数行のデータを表示
-            print(f"\n  データ行サンプル (最大5行):")
+            print("\n  データ行サンプル (最大5行):")
             data_rows = rows[1:6]
             for j, row in enumerate(data_rows):
                 cells = row.find_all(["td", "th"])
                 if len(cells) <= max(singer_idx, order_idx):
-                    print(f"    行{j+1}: (セル数不足: {len(cells)}セル)")
+                    print(f"    行{j + 1}: (セル数不足: {len(cells)}セル)")
                     continue
 
                 order_text = cells[order_idx].get_text(strip=True)
@@ -140,7 +142,9 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
                 link_texts = [a.get_text(strip=True) for a in links]
                 cell_text = singer_cell.get_text(strip=True)
 
-                print(f"    行{j+1}: 曲順='{order_text}' | セル内容='{cell_text[:50]}...' | リンク数={len(links)}")
+                print(
+                    f"    行{j + 1}: 曲順='{order_text}' | セル内容='{cell_text[:50]}...' | リンク数={len(links)}"
+                )
                 if links:
                     print(f"           リンクテキスト: {link_texts[:5]}")
 
@@ -178,14 +182,17 @@ def analyze_table_structure(html: str, year: int, kai: int) -> None:
                 print(f"  最初の行: {first_row_text}...")
 
     # 他の構造も確認（出場者リスト用のdiv等があるか）
-    print(f"\n{'-'*50}")
+    print(f"\n{'-' * 50}")
     print("その他の構造確認")
-    print(f"{'-'*50}")
+    print(f"{'-' * 50}")
 
     # 紅組・白組の見出しを探す
     headings = soup.find_all(["h2", "h3", "h4"])
-    relevant_headings = [h.get_text(strip=True) for h in headings
-                         if any(word in h.get_text() for word in ["紅組", "白組", "出場", "歌手"])]
+    relevant_headings = [
+        h.get_text(strip=True)
+        for h in headings
+        if any(word in h.get_text() for word in ["紅組", "白組", "出場", "歌手"])
+    ]
     print(f"関連見出し: {relevant_headings[:10]}")
 
     # 出場歌手に関連するセクションを探す
@@ -229,7 +236,7 @@ def main():
         else:
             print(f"\n{year}年（第{kai}回）のページ取得に失敗しました")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("分析完了")
     print("=" * 70)
 

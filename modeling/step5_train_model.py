@@ -22,7 +22,6 @@ LightGBMを使用して紅白出場予測モデルを学習
 import sys
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import pickle
 import lightgbm as lgb
 from sklearn.metrics import (
@@ -90,7 +89,7 @@ class Step5Pipeline(DataPipeline):
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
-            print(f"エラー: 依存ファイルが見つかりません:")
+            print("エラー: 依存ファイルが見つかりません:")
             for f in missing:
                 print(f"  - {f}")
             print("先に step4 を実行してください")
@@ -213,7 +212,7 @@ class Step5Pipeline(DataPipeline):
         print("\n[3] クロスバリデーション結果サマリー")
         df_cv = pd.DataFrame(cv_results)
 
-        print(f"\n  平均スコア:")
+        print("\n  平均スコア:")
         print(
             f"    Accuracy:  {df_cv['accuracy'].mean():.3f} ± {df_cv['accuracy'].std():.3f}"
         )
@@ -343,7 +342,7 @@ class Step5Pipeline(DataPipeline):
                 )
             )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Step 5 完了")
         print("=" * 60)
 

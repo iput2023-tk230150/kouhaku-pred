@@ -146,7 +146,7 @@ class Step1Pipeline(DataPipeline):
         print(f"\n保存: {output_file} ({len(df)}曲)")
 
         # サマリー表示
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("上位20曲（Total順）")
         print("=" * 60)
         top20 = df.nlargest(20, "total")[["artist", "title", "peak", "total"]]
@@ -154,7 +154,7 @@ class Step1Pipeline(DataPipeline):
         print(top20.to_string(index=False))
 
         # アーティスト別集計
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("アーティスト別曲数（上位20）")
         print("=" * 60)
         artist_counts = (

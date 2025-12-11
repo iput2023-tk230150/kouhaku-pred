@@ -323,15 +323,15 @@ class Step3Pipeline(DataPipeline):
         output_file = self.get_output_files()[0]
         df.to_csv(output_file, index=False, encoding="utf-8-sig")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"保存: {output_file} ({len(df)}件)")
 
         # 年別集計
-        print(f"\n年別出場者数:")
+        print("\n年別出場者数:")
         print(df.groupby("year").size())
 
         # 複数年出場アーティスト
-        print(f"\n複数年出場アーティスト（3回以上）:")
+        print("\n複数年出場アーティスト（3回以上）:")
         artist_counts = df.groupby("artist").size().sort_values(ascending=False)
         multi_year = artist_counts[artist_counts >= 3]
         if len(multi_year) > 0:

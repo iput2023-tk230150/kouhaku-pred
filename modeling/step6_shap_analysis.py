@@ -79,7 +79,7 @@ class Step6Pipeline(DataPipeline):
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
-            print(f"エラー: 依存ファイルが見つかりません:")
+            print("エラー: 依存ファイルが見つかりません:")
             for f in missing:
                 print(f"  - {f}")
             print("先に step5 を実行してください")
@@ -99,7 +99,6 @@ class Step6Pipeline(DataPipeline):
         # 紅白データがある年のみ使用
         df_with_kouhaku = df[df.groupby("year")["appeared"].transform("sum") > 0]
         X = df_with_kouhaku[self.feature_cols]
-        y = df_with_kouhaku["appeared"]
 
         print(f"  データ: {len(X)}件")
 
@@ -213,7 +212,7 @@ class Step6Pipeline(DataPipeline):
             print("\n  2024年 予測確率Top5の特徴量寄与:")
             for idx, (_, row) in enumerate(top5.iterrows()):
                 print(
-                    f"\n  [{idx+1}] {row['artist']} (確率: {row['predicted_prob']:.3f})"
+                    f"\n  [{idx + 1}] {row['artist']} (確率: {row['predicted_prob']:.3f})"
                 )
 
                 # このアーティストのSHAP値
@@ -231,7 +230,7 @@ class Step6Pipeline(DataPipeline):
                         f"      {feature}: {value:.0f} ({direction}{abs(shap_val):.3f})"
                     )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Step 6 完了")
         print("=" * 60)
 

@@ -50,13 +50,9 @@ def parse_args():
         "--steps", type=int, nargs="+", help="実行するステップ番号（例: --steps 1 2 3）"
     )
 
-    parser.add_argument(
-        "--start", type=int, help="開始ステップ番号（例: --start 3）"
-    )
+    parser.add_argument("--start", type=int, help="開始ステップ番号（例: --start 3）")
 
-    parser.add_argument(
-        "--end", type=int, help="終了ステップ番号（例: --end 5）"
-    )
+    parser.add_argument("--end", type=int, help="終了ステップ番号（例: --end 5）")
 
     parser.add_argument("--config", type=str, help="カスタム設定ファイルのパス")
 

@@ -87,7 +87,7 @@ class Step4Pipeline(DataPipeline):
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
-            print(f"エラー: 依存ファイルが見つかりません:")
+            print("エラー: 依存ファイルが見つかりません:")
             for f in missing:
                 print(f"  - {f}")
             print("先に step2, step3 を実行してください")
@@ -183,7 +183,7 @@ class Step4Pipeline(DataPipeline):
             df_merged[col] = df_merged[col].fillna(default)
 
         matched = df_merged["has_spotify_data"].sum()
-        print(f"  Spotifyデータあり: {matched}行 ({matched/len(df_merged):.1%})")
+        print(f"  Spotifyデータあり: {matched}行 ({matched / len(df_merged):.1%})")
 
         # ========== [6] 紅白出場フラグ作成 ==========
         print("\n[6] 紅白出場フラグ作成")
@@ -258,11 +258,11 @@ class Step4Pipeline(DataPipeline):
         output_file = self.get_output_files()[0]
         df_learning.to_csv(output_file, index=False, encoding="utf-8-sig")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"保存: {output_file} ({len(df_learning)}行)")
 
         # ========== サマリー ==========
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("データサマリー")
         print("=" * 60)
 
@@ -270,14 +270,14 @@ class Step4Pipeline(DataPipeline):
         print(f"アーティスト数: {df_learning['artist'].nunique()}")
         print(f"対象年: {df_learning['year'].min()} - {df_learning['year'].max()}")
 
-        print(f"\n--- クラス分布 ---")
+        print("\n--- クラス分布 ---")
         print(df_learning["appeared"].value_counts())
         print(f"出場率: {df_learning['appeared'].mean():.2%}")
 
-        print(f"\n--- Spotifyデータ有無 ---")
+        print("\n--- Spotifyデータ有無 ---")
         print(df_learning["has_spotify_data"].value_counts())
 
-        print(f"\n--- 年別出場者数 ---")
+        print("\n--- 年別出場者数 ---")
         yearly = df_learning.groupby("year").agg(
             candidates=("artist", "count"),
             appeared=("appeared", "sum"),
@@ -285,7 +285,7 @@ class Step4Pipeline(DataPipeline):
         )
         print(yearly)
 
-        print(f"\n--- Spotifyデータなしの紅白出場者（2024年） ---")
+        print("\n--- Spotifyデータなしの紅白出場者（2024年） ---")
         no_spotify_appeared = df_learning[
             (df_learning["year"] == 2024)
             & (df_learning["appeared"] == 1)

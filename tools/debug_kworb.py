@@ -58,12 +58,12 @@ def analyze_page(url: str):
 
     # 全テーブルを列挙
     tables = soup.find_all("table")
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"テーブル数: {len(tables)}")
     print("=" * 60)
 
     for i, table in enumerate(tables):
-        print(f"\n--- テーブル {i+1} ---")
+        print(f"\n--- テーブル {i + 1} ---")
 
         # クラス名
         classes = table.get("class", [])
@@ -103,7 +103,7 @@ def main():
         url = sys.argv[1]
     else:
         url = DEFAULT_URL
-        print(f"URLが指定されていないため、デフォルトURLを使用します")
+        print("URLが指定されていないため、デフォルトURLを使用します")
         print(f"使い方: python {Path(sys.argv[0]).name} [URL]\n")
 
     try:
