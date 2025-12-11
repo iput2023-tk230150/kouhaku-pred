@@ -183,11 +183,9 @@ class Step3Pipeline(DataPipeline):
             for cell in header_cells:
                 text = cell.get_text(strip=True)
                 colspan = int(cell.get("colspan", 1))
-                actual_col_positions.append({
-                    "text": text,
-                    "start": current_pos,
-                    "end": current_pos + colspan
-                })
+                actual_col_positions.append(
+                    {"text": text, "start": current_pos, "end": current_pos + colspan}
+                )
                 current_pos += colspan
 
             # 紅組・白組の実際の列範囲を特定
@@ -219,7 +217,10 @@ class Step3Pipeline(DataPipeline):
                     group = None
                     if red_col_range and red_col_range[0] <= col_idx < red_col_range[1]:
                         group = "紅組"
-                    elif white_col_range and white_col_range[0] <= col_idx < white_col_range[1]:
+                    elif (
+                        white_col_range
+                        and white_col_range[0] <= col_idx < white_col_range[1]
+                    ):
                         group = "白組"
 
                     self._extract_artists_from_cell(cell, year, seen, artists, group)

@@ -125,13 +125,21 @@ class Step5Pipeline(DataPipeline):
         # 各テスト年について評価
         for fold_idx, test_year in enumerate(test_years, 1):
             # 過去5年分を訓練データとする
-            train_years = [y for y in range(test_year - train_window, test_year) if y in df["year"].unique()]
+            train_years = [
+                y
+                for y in range(test_year - train_window, test_year)
+                if y in df["year"].unique()
+            ]
 
             if len(train_years) == 0:
-                print(f"\n  --- Fold {fold_idx}: テスト={test_year} → スキップ（訓練データなし）---")
+                print(
+                    f"\n  --- Fold {fold_idx}: テスト={test_year} → スキップ（訓練データなし）---"
+                )
                 continue
 
-            print(f"\n  --- Fold {fold_idx}: 訓練={train_years}, テスト={test_year} ---")
+            print(
+                f"\n  --- Fold {fold_idx}: 訓練={train_years}, テスト={test_year} ---"
+            )
 
             # 訓練・テストデータ分割
             df_train = df[df["year"].isin(train_years)]
@@ -206,11 +214,19 @@ class Step5Pipeline(DataPipeline):
         df_cv = pd.DataFrame(cv_results)
 
         print(f"\n  平均スコア:")
-        print(f"    Accuracy:  {df_cv['accuracy'].mean():.3f} ± {df_cv['accuracy'].std():.3f}")
-        print(f"    Precision: {df_cv['precision'].mean():.3f} ± {df_cv['precision'].std():.3f}")
-        print(f"    Recall:    {df_cv['recall'].mean():.3f} ± {df_cv['recall'].std():.3f}")
+        print(
+            f"    Accuracy:  {df_cv['accuracy'].mean():.3f} ± {df_cv['accuracy'].std():.3f}"
+        )
+        print(
+            f"    Precision: {df_cv['precision'].mean():.3f} ± {df_cv['precision'].std():.3f}"
+        )
+        print(
+            f"    Recall:    {df_cv['recall'].mean():.3f} ± {df_cv['recall'].std():.3f}"
+        )
         print(f"    F1-score:  {df_cv['f1'].mean():.3f} ± {df_cv['f1'].std():.3f}")
-        print(f"    AUC-ROC:   {df_cv['auc_roc'].mean():.3f} ± {df_cv['auc_roc'].std():.3f}")
+        print(
+            f"    AUC-ROC:   {df_cv['auc_roc'].mean():.3f} ± {df_cv['auc_roc'].std():.3f}"
+        )
 
         # 評価結果保存
         eval_path = self.analysis_dir / "evaluation_results.csv"
@@ -319,8 +335,13 @@ class Step5Pipeline(DataPipeline):
 
             # 分類レポート
             print("\n  分類レポート (2024年):")
-            print(classification_report(y_test_2024, (y_prob_2024 >= 0.5).astype(int),
-                                         target_names=["非出場", "出場"]))
+            print(
+                classification_report(
+                    y_test_2024,
+                    (y_prob_2024 >= 0.5).astype(int),
+                    target_names=["非出場", "出場"],
+                )
+            )
 
         print(f"\n{'='*60}")
         print("Step 5 完了")

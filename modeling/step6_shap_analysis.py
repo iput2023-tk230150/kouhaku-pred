@@ -138,11 +138,13 @@ class Step6Pipeline(DataPipeline):
 
         # 各特徴量の平均絶対SHAP値
         shap_importance = np.abs(shap_values).mean(axis=0)
-        df_shap_importance = pd.DataFrame({
-            "feature": self.feature_cols,
-            "mean_abs_shap": shap_importance,
-            "importance_pct": shap_importance / shap_importance.sum() * 100,
-        }).sort_values("mean_abs_shap", ascending=False)
+        df_shap_importance = pd.DataFrame(
+            {
+                "feature": self.feature_cols,
+                "mean_abs_shap": shap_importance,
+                "importance_pct": shap_importance / shap_importance.sum() * 100,
+            }
+        ).sort_values("mean_abs_shap", ascending=False)
 
         print("\n  SHAP値ベース特徴量重要度ランキング:")
         for _, row in df_shap_importance.iterrows():
@@ -210,7 +212,9 @@ class Step6Pipeline(DataPipeline):
 
             print("\n  2024年 予測確率Top5の特徴量寄与:")
             for idx, (_, row) in enumerate(top5.iterrows()):
-                print(f"\n  [{idx+1}] {row['artist']} (確率: {row['predicted_prob']:.3f})")
+                print(
+                    f"\n  [{idx+1}] {row['artist']} (確率: {row['predicted_prob']:.3f})"
+                )
 
                 # このアーティストのSHAP値
                 artist_idx = df_2024.index.get_loc(row.name)
@@ -223,7 +227,9 @@ class Step6Pipeline(DataPipeline):
                     value = row[feature]
                     shap_val = artist_shap[i]
                     direction = "+" if shap_val > 0 else "-"
-                    print(f"      {feature}: {value:.0f} ({direction}{abs(shap_val):.3f})")
+                    print(
+                        f"      {feature}: {value:.0f} ({direction}{abs(shap_val):.3f})"
+                    )
 
         print(f"\n{'='*60}")
         print("Step 6 完了")

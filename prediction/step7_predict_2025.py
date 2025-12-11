@@ -178,7 +178,9 @@ class Step7Pipeline(DataPipeline):
         df_candidates["predicted"] = predictions
 
         # 実際の出場フラグと紅組・白組を追加
-        df_candidates["actual"] = df_candidates["artist"].isin(actual_artists_2025).astype(int)
+        df_candidates["actual"] = (
+            df_candidates["artist"].isin(actual_artists_2025).astype(int)
+        )
 
         # 紅組・白組情報を追加
         artist_to_group = {}
@@ -188,7 +190,9 @@ class Step7Pipeline(DataPipeline):
         df_candidates["group"] = df_candidates["artist"].map(artist_to_group)
 
         # 確率順にソート（予測順位を付与）
-        df_candidates = df_candidates.sort_values("predicted_prob", ascending=False).reset_index(drop=True)
+        df_candidates = df_candidates.sort_values(
+            "predicted_prob", ascending=False
+        ).reset_index(drop=True)
         df_candidates["pred_rank"] = df_candidates.index + 1
 
         # ========== [5] 結果表示 ==========
@@ -202,7 +206,9 @@ class Step7Pipeline(DataPipeline):
         if len(actual_artists_2025) > 0:
             print(f"\n  Top 50 予測確率ランキング（発表済み出場者との比較）:")
             print("-" * 80)
-            print(f"  {'順位':>4}  {'予測':>2} {'実際':>2} {'組':>4} {'アーティスト':20s} {'確率':>6} {'過去出場':>6}")
+            print(
+                f"  {'順位':>4}  {'予測':>2} {'実際':>2} {'組':>4} {'アーティスト':20s} {'確率':>6} {'過去出場':>6}"
+            )
             print("-" * 80)
             for _, row in df_candidates.head(50).iterrows():
                 rank = int(row["pred_rank"])
@@ -211,9 +217,13 @@ class Step7Pipeline(DataPipeline):
                 actual = "★" if row["actual"] == 1 else "  "
                 past = int(row["past_appearances"])
                 group = row["group"] if pd.notna(row["group"]) else ""
-                group_short = "紅" if group == "紅組" else ("白" if group == "白組" else "  ")
-                print(f"  {rank:4d}. {pred:>2} {actual:>2} {group_short:>4} {row['artist'][:20]:20s} "
-                      f"{prob:.3f} {past:6d}回")
+                group_short = (
+                    "紅" if group == "紅組" else ("白" if group == "白組" else "  ")
+                )
+                print(
+                    f"  {rank:4d}. {pred:>2} {actual:>2} {group_short:>4} {row['artist'][:20]:20s} "
+                    f"{prob:.3f} {past:6d}回"
+                )
 
             print("-" * 80)
             print("  ◎: モデルが出場と予測  ★: 実際に出場発表  紅/白: 紅組/白組")
@@ -226,8 +236,10 @@ class Step7Pipeline(DataPipeline):
                 pred = "◎" if row["predicted"] == 1 else "  "
                 past = int(row["past_appearances"])
                 spotify = "S" if row["has_spotify_data"] == 1 else " "
-                print(f"  {rank:2d}. {pred} {row['artist'][:20]:20s} "
-                      f"確率:{prob:.3f} 過去出場:{past:2d}回 {spotify}")
+                print(
+                    f"  {rank:2d}. {pred} {row['artist'][:20]:20s} "
+                    f"確率:{prob:.3f} 過去出場:{past:2d}回 {spotify}"
+                )
 
             print("-" * 70)
             print("  ◎: モデルが出場と予測  S: Spotifyデータあり")
@@ -250,8 +262,12 @@ class Step7Pipeline(DataPipeline):
                 prob = row["predicted_prob"]
                 pred = "◎" if row["predicted"] == 1 else "  "
                 group = row["group"] if pd.notna(row["group"]) else ""
-                group_short = "紅" if group == "紅組" else ("白" if group == "白組" else "  ")
-                print(f"  {rank:4d}位 {pred} {group_short:>2} {row['artist'][:25]:25s} 確率:{prob:.3f}")
+                group_short = (
+                    "紅" if group == "紅組" else ("白" if group == "白組" else "  ")
+                )
+                print(
+                    f"  {rank:4d}位 {pred} {group_short:>2} {row['artist'][:25]:25s} 確率:{prob:.3f}"
+                )
             print("-" * 70)
 
             # 精度評価
@@ -270,13 +286,17 @@ class Step7Pipeline(DataPipeline):
             for n in [20, 30, 40, 50, 100]:
                 count_in_top_n = (df_actual["pred_rank"] <= n).sum()
                 pct = count_in_top_n / len(df_actual) * 100
-                print(f"    Top {n:3d} に含まれる出場者: {count_in_top_n:2d}/{len(df_actual)} ({pct:.1f}%)")
+                print(
+                    f"    Top {n:3d} に含まれる出場者: {count_in_top_n:2d}/{len(df_actual)} ({pct:.1f}%)"
+                )
 
             # モデル予測との一致
             predicted_correct = (df_actual["predicted"] == 1).sum()
             print(f"\n  モデル出場予測との一致:")
-            print(f"    発表済み出場者のうち出場予測: {predicted_correct}/{len(df_actual)} "
-                  f"({predicted_correct/len(df_actual)*100:.1f}%)")
+            print(
+                f"    発表済み出場者のうち出場予測: {predicted_correct}/{len(df_actual)} "
+                f"({predicted_correct/len(df_actual)*100:.1f}%)"
+            )
 
         # ========== [8] 統計情報 ==========
         print(f"\n[{'8' if len(actual_artists_2025) > 0 else '6'}] 統計情報")

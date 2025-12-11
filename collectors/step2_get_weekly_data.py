@@ -256,7 +256,9 @@ class Step2Pipeline(DataPipeline):
                 # 重複削除（date + track_id で一意）
                 df_weekly = df_weekly.drop_duplicates(subset=["date", "track_id"])
                 # 日付でソート
-                df_weekly = df_weekly.sort_values(["date", "track_id"]).reset_index(drop=True)
+                df_weekly = df_weekly.sort_values(["date", "track_id"]).reset_index(
+                    drop=True
+                )
                 print(f"マージ後レコード数: {len(df_weekly)}")
             else:
                 df_weekly = df_new
