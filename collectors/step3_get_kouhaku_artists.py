@@ -10,6 +10,7 @@ WikipediaのMediaWiki APIを使用して紅白歌合戦の出場者リストを�
 
 import sys
 from pathlib import Path
+from datetime import datetime
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -26,7 +27,10 @@ class Step3Pipeline(DataPipeline):
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
-        self.target_years = config["kouhaku"]["target_years"]
+        # TOMLのキーは文字列なのでintに変換
+        self.target_years = {
+            int(k): v for k, v in config["kouhaku"]["target_years"].items()
+        }
         self.api_url = config["network"]["urls"]["wikipedia_api"]
         self.headers = {"User-Agent": config["network"]["user_agent"]}
         self.interval = config["network"]["request_interval"]
@@ -277,20 +281,45 @@ class Step3Pipeline(DataPipeline):
         print("Step 3: 紅白出場者リスト取得")
         print("=" * 60)
 
-        # 既存ファイルがあればスキップ
         output_file = self.get_output_files()[0]
+        current_year = datetime.now().year
+
+        # 既存データの読み込み
+        df_existing = None
         if output_file.exists():
-            df = pd.read_csv(output_file)
-            print(f"\n既存データを使用: {output_file}")
-            print(f"  レコード数: {len(df)}件")
-            print("  再取得する場合はファイルを削除してください")
+            df_existing = pd.read_csv(output_file)
+            df_existing["year"] = df_existing["year"].astype(int)
+            print(f"\n既存データ: {len(df_existing)}件")
+
+            # 今年のデータがあれば削除して再取得対象に
+            if current_year in df_existing["year"].values:
+                past_data = df_existing[df_existing["year"] != current_year]
+                print(f"  過去データ: {len(past_data)}件（保持）")
+                print(f"  今年データ: {len(df_existing) - len(past_data)}件（再取得）")
+                df_existing = past_data
+            else:
+                print("  今年のデータなし（新規取得）")
+
+        # 取得対象年を決定
+        if df_existing is not None and not df_existing.empty:
+            existing_years = set(df_existing["year"].values)
+            years_to_fetch = {
+                y: k
+                for y, k in self.target_years.items()
+                if y not in existing_years or y == current_year
+            }
+        else:
+            years_to_fetch = self.target_years
+
+        if not years_to_fetch:
+            print("\n取得対象の年がありません")
             return True
+
+        print(f"\n取得対象年: {list(years_to_fetch.keys())}")
 
         all_artists = []
 
-        for year, kai in track(
-            self.target_years.items(), description="紅白出場者取得中"
-        ):
+        for year, kai in track(years_to_fetch.items(), description="紅白出場者取得中"):
             html = self.get_kouhaku_page(kai)
             if not html:
                 continue
@@ -302,15 +331,21 @@ class Step3Pipeline(DataPipeline):
 
             time.sleep(self.interval)
 
-        if not all_artists:
+        if not all_artists and df_existing is None:
             print("\nデータが取得できませんでした")
             return False
 
-        # DataFrame作成
-        df = pd.DataFrame(all_artists)
+        # DataFrame作成（新規取得分）
+        df_new = pd.DataFrame(all_artists) if all_artists else pd.DataFrame()
+
+        # 既存データとマージ
+        if df_existing is not None and not df_existing.empty:
+            df = pd.concat([df_existing, df_new], ignore_index=True)
+            df = df.sort_values("year").reset_index(drop=True)
+        else:
+            df = df_new
 
         # 保存
-        output_file = self.get_output_files()[0]
         df.to_csv(output_file, index=False, encoding="utf-8-sig")
 
         print(f"\n{'=' * 60}")
