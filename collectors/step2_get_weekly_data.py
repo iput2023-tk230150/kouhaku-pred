@@ -22,6 +22,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import re
 import time
+from datetime import date, timedelta
 from typing import Any
 
 from rich.progress import (
@@ -35,6 +36,23 @@ from rich.progress import (
 )
 
 from core.pipeline import DataPipeline, load_config
+
+
+def get_fiscal_year_boundary(year: int) -> date:
+    """
+    指定年の11月第4週木曜日（年度境界日）を取得
+    kworb.netは木曜始まりのため、木曜日を境界とする
+
+    ビルボードジャパンの年間チャート集計期間に準拠:
+    例: 2025年チャート = 2024年11月25日〜2025年11月23日
+    """
+    nov_1 = date(year, 11, 1)
+    # 11月1日から最初の木曜日を探す（木曜=3）
+    days_until_thursday = (3 - nov_1.weekday()) % 7
+    first_thursday = nov_1 + timedelta(days=days_until_thursday)
+    # 第4木曜日 = 最初の木曜日 + 3週間
+    fourth_thursday = first_thursday + timedelta(weeks=3)
+    return fourth_thursday
 
 
 def parse_jp_value(value: str) -> tuple[int | None, int | None]:
@@ -144,11 +162,27 @@ class Step2Pipeline(DataPipeline):
                 rank, streams = parse_jp_value(jp_value)
 
                 if rank is not None:
-                    year = int(date_str[:4])
+                    # 審査年度を計算（11月第4週木曜日を境界とする）
+                    year_num = int(date_str[:4])
+                    month_num = int(date_str[5:7])
+                    day_num = int(date_str[8:10])
+
+                    # 12月は常に翌年度、11月は境界判定
+                    if month_num == 12:
+                        fiscal_year = year_num + 1
+                    elif month_num == 11:
+                        current_date = date(year_num, month_num, day_num)
+                        boundary = get_fiscal_year_boundary(year_num)
+                        fiscal_year = (
+                            year_num + 1 if current_date >= boundary else year_num
+                        )
+                    else:
+                        fiscal_year = year_num
+
                     weekly_data.append(
                         {
                             "date": date_str,
-                            "year": year,
+                            "year": fiscal_year,
                             "jp_rank": rank,
                             "jp_streams": streams,
                         }
