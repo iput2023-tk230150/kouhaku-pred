@@ -24,6 +24,16 @@ import re
 import time
 from typing import Any
 
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    MofNCompleteColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
 from core.pipeline import DataPipeline, load_config
 
 
@@ -196,45 +206,55 @@ class Step2Pipeline(DataPipeline):
         print(f"リクエスト間隔: {self.interval}秒")
         print()
 
-        for idx, row in df_songs.iterrows():
-            track_id = row["track_id"]
-            artist = row["artist"]
-            title = row["title"]
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        ) as progress:
+            task = progress.add_task("週次データ取得中", total=len(df_songs))
 
-            is_new_track = track_id not in existing_track_ids
+            for _, row in df_songs.iterrows():
+                track_id = row["track_id"]
+                artist = row["artist"]
+                title = row["title"]
 
-            # 進捗表示
-            if (idx + 1) % 10 == 0:
-                print(
-                    f"  {idx + 1}/{len(df_songs)} 処理中... "
-                    f"(新規: {new_track_count}, 更新: {updated_track_count})"
+                is_new_track = track_id not in existing_track_ids
+
+                weekly = self.get_track_weekly_jp(track_id)
+
+                # 対象年のみフィルタ
+                filtered_weekly = []
+                for w in weekly:
+                    if w["year"] in self.target_years:
+                        # 差分取得: 既存曲は最新日付以降のみ
+                        if not is_new_track and last_date:
+                            w_date = pd.to_datetime(w["date"])
+                            if w_date <= last_date:
+                                continue
+
+                        w["track_id"] = track_id
+                        w["artist"] = artist
+                        w["title"] = title
+                        filtered_weekly.append(w)
+
+                if filtered_weekly:
+                    all_weekly.extend(filtered_weekly)
+                    if is_new_track:
+                        new_track_count += 1
+                    else:
+                        updated_track_count += 1
+
+                # プログレスバー更新
+                progress.update(
+                    task,
+                    advance=1,
+                    description=f"取得中 (新規:{new_track_count} 更新:{updated_track_count})",
                 )
 
-            weekly = self.get_track_weekly_jp(track_id)
-
-            # 対象年のみフィルタ
-            filtered_weekly = []
-            for w in weekly:
-                if w["year"] in self.target_years:
-                    # 差分取得: 既存曲は最新日付以降のみ
-                    if not is_new_track and last_date:
-                        w_date = pd.to_datetime(w["date"])
-                        if w_date <= last_date:
-                            continue
-
-                    w["track_id"] = track_id
-                    w["artist"] = artist
-                    w["title"] = title
-                    filtered_weekly.append(w)
-
-            if filtered_weekly:
-                all_weekly.extend(filtered_weekly)
-                if is_new_track:
-                    new_track_count += 1
-                else:
-                    updated_track_count += 1
-
-            time.sleep(self.interval)
+                time.sleep(self.interval)
 
         print("\n取得完了:")
         print(f"  新規曲: {new_track_count}")

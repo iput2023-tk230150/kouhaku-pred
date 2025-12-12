@@ -16,6 +16,8 @@ from bs4 import BeautifulSoup
 import time
 from typing import Any
 
+from rich.progress import track
+
 from core.pipeline import DataPipeline, load_config
 
 
@@ -286,30 +288,18 @@ class Step3Pipeline(DataPipeline):
 
         all_artists = []
 
-        for year, kai in self.target_years.items():
-            print(f"\n[{year}年 第{kai}回]")
-
+        for year, kai in track(
+            self.target_years.items(), description="紅白出場者取得中"
+        ):
             html = self.get_kouhaku_page(kai)
             if not html:
-                print("  ページ取得失敗")
                 continue
 
             artists = self.parse_kouhaku_artists(html, year)
-            print(f"  取得アーティスト数: {len(artists)}")
 
             if artists:
-                # 紅組・白組の内訳
-                red_count = sum(1 for a in artists if a.get("group") == "紅組")
-                white_count = sum(1 for a in artists if a.get("group") == "白組")
-                unknown_count = len(artists) - red_count - white_count
-                print(f"  紅組: {red_count}, 白組: {white_count}", end="")
-                if unknown_count > 0:
-                    print(f", 不明: {unknown_count}", end="")
-                print()
-                sample = [a["artist"] for a in artists[:5]]
-                print(f"  サンプル: {sample}")
+                all_artists.extend(artists)
 
-            all_artists.extend(artists)
             time.sleep(self.interval)
 
         if not all_artists:
