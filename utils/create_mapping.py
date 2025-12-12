@@ -12,15 +12,15 @@
 - unmatched_artists.csv: マッチしなかったアーティスト一覧
 
 使い方:
-    cd kouhaku-pred/src
-    uv run python -m tools.create_mapping
+    cd kouhaku-pred
+    uv run python -m utils.create_mapping
 """
 
 import sys
 from pathlib import Path
 
 import pandas as pd
-from utils import ArtistNameNormalizer, ArtistMapper
+from . import ArtistNameNormalizer, ArtistMapper
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
 
     # データ読み込み
     try:
-        # プロジェクトルートのデータファイルを読み込む (src/tools/ → src/ → kouhaku-pred/)
+        # プロジェクトルートのデータファイルを読み込む (utils/ → kouhaku-pred/)
         project_root = Path(__file__).parent.parent
         df_spotify = pd.read_csv(project_root / "data" / "jp_yearly_stats.csv")
         df_kouhaku = pd.read_csv(project_root / "data" / "kouhaku_artists.csv")
