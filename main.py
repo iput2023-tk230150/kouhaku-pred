@@ -4,12 +4,12 @@
 Step1-7を順次実行し、データ収集からモデル学習・予測まで行う
 
 使い方:
-    python main.py                    # 全ステップ実行
-    python main.py --steps 1 2        # Step1,2のみ実行
-    python main.py --start 3 --end 5  # Step3〜5を実行
-    python main.py --start 4          # Step4以降を実行
-    python main.py --end 3            # Step1〜3を実行
-    python main.py --config custom.toml  # カスタム設定ファイル
+    python main.py                 # 全ステップ実行
+    python main.py -s 3 -e 5       # Step3〜5を実行
+    python main.py -s 4            # Step4以降を実行
+    python main.py -e 3            # Step1〜3を実行
+    python main.py -n 1000         # top_n_songs=1000 で実行
+    python main.py -s 2 -n 100     # Step2以降、top_n_songs=100
 """
 
 import sys
@@ -46,13 +46,13 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    parser.add_argument("-s", "--start", type=int, help="開始ステップ番号（例: -s 3）")
+
+    parser.add_argument("-e", "--end", type=int, help="終了ステップ番号（例: -e 5）")
+
     parser.add_argument(
-        "--steps", type=int, nargs="+", help="実行するステップ番号（例: --steps 1 2 3）"
+        "-n", "--top-n", type=int, help="top_n_songs の値を上書き（例: -n 1000）"
     )
-
-    parser.add_argument("--start", type=int, help="開始ステップ番号（例: --start 3）")
-
-    parser.add_argument("--end", type=int, help="終了ステップ番号（例: --end 5）")
 
     parser.add_argument("--config", type=str, help="カスタム設定ファイルのパス")
 
@@ -65,10 +65,6 @@ def parse_args():
 
 def get_steps_to_execute(args) -> list[int]:
     """実行するステップのリストを取得"""
-    if args.steps:
-        return sorted(args.steps)
-
-    # 範囲指定（--start / --end）
     start = args.start or min(PIPELINES.keys())
     end = args.end or max(PIPELINES.keys())
     return list(range(start, end + 1))
@@ -184,6 +180,11 @@ def main():
     except Exception as e:
         print(f"設定ファイル読み込みエラー: {e}")
         sys.exit(1)
+
+    # top_n_songs を引数で上書き
+    if args.top_n:
+        config["data_collection"]["top_n_songs"] = args.top_n
+        print(f"top_n_songs を {args.top_n} に上書きしました")
 
     # データディレクトリ（プロジェクトルート直下）
     data_dir = Path(__file__).parent / config["paths"]["data_dir"]
