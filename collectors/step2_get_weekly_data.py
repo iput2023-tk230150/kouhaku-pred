@@ -15,44 +15,27 @@ Step1で取得した曲リストから、各曲の週次日本チャートデー
 - config.toml の top_n_songs で取得曲数を制限可能（テスト用）
 """
 
-import sys
-from pathlib import Path
-import requests
-import pandas as pd
-from bs4 import BeautifulSoup
 import re
+import sys
 import time
-from datetime import date, timedelta
+from datetime import date
+from pathlib import Path
 from typing import Any
 
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
     Progress,
     SpinnerColumn,
     TextColumn,
-    BarColumn,
-    MofNCompleteColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
 
-from core.pipeline import DataPipeline, load_config
-
-
-def get_fiscal_year_boundary(year: int) -> date:
-    """
-    指定年の11月第4週木曜日（年度境界日）を取得
-    kworb.netは木曜始まりのため、木曜日を境界とする
-
-    ビルボードジャパンの年間チャート集計期間に準拠:
-    例: 2025年チャート = 2024年11月25日〜2025年11月23日
-    """
-    nov_1 = date(year, 11, 1)
-    # 11月1日から最初の木曜日を探す（木曜=3）
-    days_until_thursday = (3 - nov_1.weekday()) % 7
-    first_thursday = nov_1 + timedelta(days=days_until_thursday)
-    # 第4木曜日 = 最初の木曜日 + 3週間
-    fourth_thursday = first_thursday + timedelta(weeks=3)
-    return fourth_thursday
+from core.pipeline import DataPipeline, get_fiscal_year_boundary, load_config
 
 
 def parse_jp_value(value: str) -> tuple[int | None, int | None]:

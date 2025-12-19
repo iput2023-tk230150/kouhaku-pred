@@ -5,8 +5,10 @@
 """
 
 from abc import ABC, abstractmethod
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+
 import tomllib
 
 
@@ -65,6 +67,29 @@ class DataPipeline(ABC):
                 missing.append(str(file_path))
 
         return len(missing) == 0, missing
+
+
+def get_fiscal_year_boundary(year: int) -> date:
+    """
+    指定年の11月第4週木曜日（年度境界日）を取得
+
+    kworb.netは木曜始まりのため、木曜日を境界とする。
+    ビルボードジャパンの年間チャート集計期間に準拠:
+    例: 2025年チャート = 2024年11月25日〜2025年11月23日
+
+    Args:
+        year: 対象年
+
+    Returns:
+        11月第4週木曜日の日付
+    """
+    nov_1 = date(year, 11, 1)
+    # 11月1日から最初の木曜日を探す（木曜=3）
+    days_until_thursday = (3 - nov_1.weekday()) % 7
+    first_thursday = nov_1 + timedelta(days=days_until_thursday)
+    # 第4木曜日 = 最初の木曜日 + 3週間
+    fourth_thursday = first_thursday + timedelta(weeks=3)
+    return fourth_thursday
 
 
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
