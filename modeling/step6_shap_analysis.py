@@ -13,15 +13,15 @@ Step 6: SHAP値分析スクリプト
 - data/analysis/shap_dependence_*.png: 依存性プロット
 """
 
+import pickle
 import sys
 from pathlib import Path
-import pandas as pd
-import numpy as np
-import pickle
-import shap
-import matplotlib.pyplot as plt
 from typing import Any
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import shap
 
 from core.pipeline import DataPipeline, load_config
 

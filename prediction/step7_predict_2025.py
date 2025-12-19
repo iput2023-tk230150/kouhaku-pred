@@ -13,11 +13,12 @@ Step 7: 2025年紅白出場者予測スクリプト
 - data/analysis/predictions_2025.csv: 2025年予測結果
 """
 
+import pickle
 import sys
 from pathlib import Path
-import pandas as pd
-import pickle
 from typing import Any
+
+import pandas as pd
 
 from core.pipeline import DataPipeline, load_config
 
