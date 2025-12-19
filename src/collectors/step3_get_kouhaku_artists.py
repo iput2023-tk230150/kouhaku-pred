@@ -160,8 +160,8 @@ class Step3Pipeline(DataPipeline):
     def _parse_pre_broadcast_format(self, soup: BeautifulSoup, year: int) -> list[dict]:
         """
         開催前形式のパース（紅組・白組が横並びのテーブル）
-        ヘッダーが「紅組」「白組」の2列構成（colspan=2で各2列分）
-        データ行は4列: [紅組歌手, 回, 白組歌手, 回]
+        ヘッダーが「紅組」「白組」の2列構成
+        rowspanによりセル数が変動するため、セル位置の前半/後半で紅組・白組を判定
         """
         artists = []
         seen = set()
@@ -181,28 +181,6 @@ class Step3Pipeline(DataPipeline):
             if not ("紅組" in headers and "白組" in headers):
                 continue
 
-            # colspanを考慮して実際の列位置を計算
-            # ヘッダー行: [紅組(colspan=2), 白組(colspan=2)]
-            # データ行: [紅組歌手, 回, 白組歌手, 回]
-            actual_col_positions = []
-            current_pos = 0
-            for cell in header_cells:
-                text = cell.get_text(strip=True)
-                colspan = int(cell.get("colspan", 1))
-                actual_col_positions.append(
-                    {"text": text, "start": current_pos, "end": current_pos + colspan}
-                )
-                current_pos += colspan
-
-            # 紅組・白組の実際の列範囲を特定
-            red_col_range = None
-            white_col_range = None
-            for pos_info in actual_col_positions:
-                if "紅組" in pos_info["text"]:
-                    red_col_range = (pos_info["start"], pos_info["end"])
-                if "白組" in pos_info["text"]:
-                    white_col_range = (pos_info["start"], pos_info["end"])
-
             # サブヘッダー行（「歌手名」「回」など）をスキップ
             data_start_idx = 1
             if len(rows) > 1:
@@ -211,23 +189,20 @@ class Step3Pipeline(DataPipeline):
                     data_start_idx = 2
 
             # データ行を処理
+            # rowspanによりセル数が変動するため、セル位置の前半/後半で判定
             for row in rows[data_start_idx:]:
                 cells = row.find_all(["td", "th"])
+                num_cells = len(cells)
+                midpoint = num_cells // 2  # セル数の半分を境界とする
+
                 for col_idx, cell in enumerate(cells):
                     # 特別企画枠（背景色Khaki）をスキップ
                     style = cell.get("style", "")
                     if "khaki" in style.lower():
                         continue
 
-                    # 列インデックスから紅組・白組を判定
-                    group = None
-                    if red_col_range and red_col_range[0] <= col_idx < red_col_range[1]:
-                        group = "紅組"
-                    elif (
-                        white_col_range
-                        and white_col_range[0] <= col_idx < white_col_range[1]
-                    ):
-                        group = "白組"
+                    # セル位置の前半/後半で紅組・白組を判定
+                    group = "紅組" if col_idx < midpoint else "白組"
 
                     self._extract_artists_from_cell(cell, year, seen, artists, group)
 
