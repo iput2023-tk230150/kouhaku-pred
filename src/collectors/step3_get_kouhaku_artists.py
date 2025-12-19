@@ -19,7 +19,7 @@ from typing import Any
 
 from rich.progress import track
 
-from core.pipeline import DataPipeline, load_config
+from src.core.pipeline import DataPipeline, load_config
 
 
 class Step3Pipeline(DataPipeline):
@@ -370,7 +370,7 @@ class Step3Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step3Pipeline(config, data_dir)
     success = pipeline.execute()

@@ -36,7 +36,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from core.pipeline import DataPipeline, load_config
+from src.core.pipeline import DataPipeline, load_config
 
 
 class Step5Pipeline(DataPipeline):
@@ -365,7 +365,7 @@ class Step5Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step5Pipeline(config, data_dir)
     success = pipeline.execute()

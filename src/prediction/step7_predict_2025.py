@@ -20,7 +20,7 @@ from typing import Any
 
 import pandas as pd
 
-from core.pipeline import DataPipeline, load_config
+from src.core.pipeline import DataPipeline, load_config
 
 
 class Step7Pipeline(DataPipeline):
@@ -315,7 +315,7 @@ class Step7Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step7Pipeline(config, data_dir)
     success = pipeline.execute()

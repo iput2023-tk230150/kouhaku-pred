@@ -20,7 +20,7 @@ from typing import Any
 
 import pandas as pd
 
-from core.pipeline import DataPipeline, load_config
+from src.core.pipeline import DataPipeline, load_config
 
 
 def calc_past_appearances(group: pd.DataFrame) -> pd.DataFrame:
@@ -369,7 +369,7 @@ class Step4Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step4Pipeline(config, data_dir)
     success = pipeline.execute()

@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import shap
 
-from core.pipeline import DataPipeline, load_config
+from src.core.pipeline import DataPipeline, load_config
 
 
 class Step6Pipeline(DataPipeline):
@@ -240,7 +240,7 @@ class Step6Pipeline(DataPipeline):
 def main():
     """スタンドアロン実行用のエントリーポイント"""
     config = load_config()
-    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step6Pipeline(config, data_dir)
     success = pipeline.execute()

@@ -13,9 +13,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from collectors.step1_get_song_list import clean_number
-from collectors.step2_get_weekly_data import parse_jp_value
-from core.pipeline import get_fiscal_year_boundary
+from src.collectors.step1_get_song_list import clean_number  # noqa: E402
+from src.collectors.step2_get_weekly_data import parse_jp_value  # noqa: E402
+from src.core.pipeline import get_fiscal_year_boundary  # noqa: E402
 
 
 class TestCleanNumber:

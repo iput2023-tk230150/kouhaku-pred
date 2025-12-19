@@ -27,15 +27,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from collectors.step1_get_song_list import Step1Pipeline
-from collectors.step2_get_weekly_data import Step2Pipeline
-from collectors.step3_5_get_google_trends import Step35Pipeline
-from collectors.step3_get_kouhaku_artists import Step3Pipeline
-from core.pipeline import load_config
-from modeling.step5_train_model import Step5Pipeline
-from modeling.step6_shap_analysis import Step6Pipeline
-from prediction.step7_predict_2025 import Step7Pipeline
-from processing.step4_create_learning_data import Step4Pipeline
+from src.collectors.step1_get_song_list import Step1Pipeline
+from src.collectors.step2_get_weekly_data import Step2Pipeline
+from src.collectors.step3_5_get_google_trends import Step35Pipeline
+from src.collectors.step3_get_kouhaku_artists import Step3Pipeline
+from src.core.pipeline import load_config
+from src.modeling.step5_train_model import Step5Pipeline
+from src.modeling.step6_shap_analysis import Step6Pipeline
+from src.prediction.step7_predict_2025 import Step7Pipeline
+from src.processing.step4_create_learning_data import Step4Pipeline
 
 
 # パイプライン定義（実行順序はSTEP_ORDERで制御）
@@ -203,7 +203,7 @@ def main() -> None:
         print(f"top_n_songs を {args.top_n} に上書きしました")
 
     # データディレクトリ（プロジェクトルート直下）
-    data_dir = Path(__file__).parent / config["paths"]["data_dir"]
+    data_dir = Path(__file__).parent.parent / config["paths"]["data_dir"]
 
     # パイプライン実行
     exit_code = run_pipeline(config, data_dir, args.skip_dependency_check)
