@@ -59,6 +59,9 @@ class Step35Pipeline(DataPipeline):
         self.geo = self.google_trends_config.get("geo", "JP")
         self.request_interval = self.google_trends_config.get("request_interval", 10)
         self.max_retries = self.google_trends_config.get("max_retries", 3)
+        self.checkpoint_interval = self.google_trends_config.get(
+            "checkpoint_interval", 20
+        )  # N件ごとに中間保存
 
         # 対象年
         self.target_years = config["data_collection"]["target_years"]
@@ -154,6 +157,35 @@ class Step35Pipeline(DataPipeline):
 
         return None
 
+    def _save_checkpoint(
+        self,
+        output_file: Path,
+        df_existing: pd.DataFrame,
+        results: list[dict],
+        processed_count: int,
+    ) -> None:
+        """
+        中間結果を保存
+
+        Args:
+            output_file: 出力ファイルパス
+            df_existing: 既存データのDataFrame
+            results: 今回取得した結果リスト
+            processed_count: 処理済み件数
+        """
+        df_new = pd.DataFrame(results)
+
+        if not df_existing.empty:
+            df_checkpoint = pd.concat([df_existing, df_new], ignore_index=True)
+            df_checkpoint = df_checkpoint.drop_duplicates(
+                subset=["artist", "year"], keep="last"
+            ).reset_index(drop=True)
+        else:
+            df_checkpoint = df_new
+
+        df_checkpoint.to_csv(output_file, index=False, encoding="utf-8-sig")
+        print(f"\n  [チェックポイント] {processed_count}件処理済み、保存完了")
+
     def execute(self) -> bool:
         """パイプライン実行"""
         print("=" * 60)
@@ -238,6 +270,7 @@ class Step35Pipeline(DataPipeline):
         # 推定時間の表示
         estimated_time = len(pairs_to_fetch) * self.request_interval
         print(f"\n  推定所要時間: 約{estimated_time // 60}分{estimated_time % 60}秒")
+        print(f"  中間保存間隔: {self.checkpoint_interval}件ごと")
 
         # ========== [4] Googleトレンドデータ取得 ==========
         print("\n[4] Googleトレンドデータ取得")
@@ -248,6 +281,7 @@ class Step35Pipeline(DataPipeline):
         results = []
         success_count = 0
         fail_count = 0
+        last_checkpoint = 0
 
         with Progress(
             SpinnerColumn(),
@@ -258,7 +292,7 @@ class Step35Pipeline(DataPipeline):
         ) as progress:
             task = progress.add_task("トレンド取得中", total=len(pairs_to_fetch))
 
-            for artist, year in pairs_to_fetch:
+            for idx, (artist, year) in enumerate(pairs_to_fetch):
                 progress.update(task, description=f"{artist} ({year}年)")
 
                 # トレンドデータ取得
@@ -288,6 +322,17 @@ class Step35Pipeline(DataPipeline):
                     fail_count += 1
 
                 progress.advance(task)
+
+                # 中間保存（checkpoint_interval件ごと）
+                processed_count = idx + 1
+                if (
+                    processed_count - last_checkpoint >= self.checkpoint_interval
+                    and results
+                ):
+                    self._save_checkpoint(
+                        output_file, df_existing, results, processed_count
+                    )
+                    last_checkpoint = processed_count
 
                 # レート制限対策
                 time.sleep(self.request_interval)
