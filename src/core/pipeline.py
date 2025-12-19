@@ -104,7 +104,8 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     if config_path is None:
         # デフォルトパス: プロジェクトルート/config.toml
-        config_path = Path(__file__).parent.parent / "config.toml"
+        # src/core/pipeline.py → src/core → src → プロジェクトルート
+        config_path = Path(__file__).parent.parent.parent / "config.toml"
 
     if not config_path.exists():
         raise FileNotFoundError(f"設定ファイルが見つかりません: {config_path}")
