@@ -76,11 +76,7 @@ dmypy.json
 # User Setting
 .sync-exclude.lst
 .cache
-
-# Data（生成ファイル）
 data/raw/
 data/processed/
 data/analysis/
-
-# 学習済みモデル
 models/
