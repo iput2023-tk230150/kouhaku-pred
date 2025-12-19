@@ -16,9 +16,11 @@ dependencies = [
     "lightgbm>=4.6.0",
     "dotenv>=0.9.9",
     "rich>=13.0.0",
+    "pytrends>=4.9.2",
 ]
 
 [dependency-groups]
 dev = [
     "ruff>=0.14.8",
+    "pytest>=8.0.0",
 ]

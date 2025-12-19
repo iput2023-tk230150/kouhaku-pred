@@ -1,45 +1,60 @@
 """
 紅白予測システム パイプライン制御スクリプト
 ==========================================
-Step1-7を順次実行し、データ収集からモデル学習・予測まで行う
+Step1-7（3.5含む）を順次実行し、データ収集からモデル学習・予測まで行う
 
 使い方:
     python main.py                 # 全ステップ実行
-    python main.py -s 3 -e 5       # Step3〜5を実行
+    python main.py -s 3 -e 5       # Step3〜5を実行（3.5含む）
     python main.py -s 4            # Step4以降を実行
     python main.py -e 3            # Step1〜3を実行
     python main.py -n 1000         # top_n_songs=1000 で実行
     python main.py -s 2 -n 100     # Step2以降、top_n_songs=100
+
+ステップ一覧:
+    Step 1   : 曲リスト取得（kworb.net）
+    Step 2   : 週次データ取得
+    Step 3   : 紅白出場者リスト取得（Wikipedia）
+    Step 3.5 : Googleトレンドデータ取得（pytrends）
+    Step 4   : 学習データ作成
+    Step 5   : モデル学習
+    Step 6   : SHAP分析
+    Step 7   : 2025年予測
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 from typing import Any
 
-from core.pipeline import load_config
 from collectors.step1_get_song_list import Step1Pipeline
 from collectors.step2_get_weekly_data import Step2Pipeline
+from collectors.step3_5_get_google_trends import Step35Pipeline
 from collectors.step3_get_kouhaku_artists import Step3Pipeline
-from processing.step4_create_learning_data import Step4Pipeline
+from core.pipeline import load_config
 from modeling.step5_train_model import Step5Pipeline
 from modeling.step6_shap_analysis import Step6Pipeline
 from prediction.step7_predict_2025 import Step7Pipeline
+from processing.step4_create_learning_data import Step4Pipeline
 
 
-# パイプライン定義
+# パイプライン定義（実行順序はSTEP_ORDERで制御）
 PIPELINES = {
     1: ("Step 1: 曲リスト取得", Step1Pipeline),
     2: ("Step 2: 週次データ取得", Step2Pipeline),
     3: ("Step 3: 紅白出場者リスト取得", Step3Pipeline),
+    3.5: ("Step 3.5: Googleトレンド取得", Step35Pipeline),
     4: ("Step 4: 学習データ作成", Step4Pipeline),
     5: ("Step 5: モデル学習", Step5Pipeline),
     6: ("Step 6: SHAP分析", Step6Pipeline),
     7: ("Step 7: 2025年予測", Step7Pipeline),
 }
 
+# 実行順序（floatキー対応）
+STEP_ORDER = [1, 2, 3, 3.5, 4, 5, 6, 7]
 
-def parse_args():
+
+def parse_args() -> argparse.Namespace:
     """コマンドライン引数のパース"""
     parser = argparse.ArgumentParser(
         description="紅白予測システム データ収集パイプライン",
@@ -63,16 +78,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_steps_to_execute(args) -> list[int]:
+def get_steps_to_execute(args: argparse.Namespace) -> list[int | float]:
     """実行するステップのリストを取得"""
-    start = args.start or min(PIPELINES.keys())
-    end = args.end or max(PIPELINES.keys())
-    return list(range(start, end + 1))
+    start = args.start or min(STEP_ORDER)
+    end = args.end or max(STEP_ORDER)
+    # STEP_ORDERからstart〜endの範囲を抽出（floatキー対応）
+    return [s for s in STEP_ORDER if start <= s <= end]
 
 
 def run_pipeline(
     config: dict[str, Any], data_dir: Path, skip_dependency_check: bool = False
-):
+) -> int:
     """パイプラインを実行"""
     args = parse_args()
     steps_to_execute = get_steps_to_execute(args)
@@ -161,7 +177,7 @@ def run_pipeline(
         return 1
 
 
-def main():
+def main() -> None:
     """メインエントリーポイント"""
     args = parse_args()
 

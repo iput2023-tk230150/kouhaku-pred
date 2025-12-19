@@ -19,21 +19,22 @@ LightGBMを使用して紅白出場予測モデルを学習
 - 評価指標: Accuracy, F1-score, AUC-ROC
 """
 
+import pickle
 import sys
 from pathlib import Path
-import pandas as pd
-import pickle
+from typing import Any
+
 import lightgbm as lgb
+import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
     roc_auc_score,
-    confusion_matrix,
-    classification_report,
 )
-from typing import Any
 
 from core.pipeline import DataPipeline, load_config
 
@@ -63,6 +64,12 @@ class Step5Pipeline(DataPipeline):
             "past_appearances",
             "prev_year_appeared",
             "consecutive_years",
+        ]
+        # Googleトレンド特徴量（オプション）
+        self.trends_feature_cols = [
+            "trend_avg_interest",
+            "trend_peak_interest",
+            "trend_volatility",
         ]
         self.target_col = "appeared"
 
@@ -100,6 +107,12 @@ class Step5Pipeline(DataPipeline):
         df = pd.read_csv(self.processed_dir / "learning_data.csv")
         print(f"  総レコード数: {len(df)}")
         print(f"  対象年: {df['year'].min()} - {df['year'].max()}")
+
+        # Googleトレンド特徴量を動的に追加（存在する場合）
+        for col in self.trends_feature_cols:
+            if col in df.columns and col not in self.feature_cols:
+                self.feature_cols.append(col)
+                print(f"  トレンド特徴量を追加: {col}")
 
         # 紅白データがある年のみ使用（2016-2019は紅白データがない）
         df_with_kouhaku = df[df.groupby("year")["appeared"].transform("sum") > 0]

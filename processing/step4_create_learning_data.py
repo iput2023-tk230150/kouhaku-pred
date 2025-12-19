@@ -14,32 +14,33 @@ Step 4: 学習データ作成スクリプト
 """
 
 import sys
-from pathlib import Path
-import pandas as pd
 from itertools import product
+from pathlib import Path
 from typing import Any
+
+import pandas as pd
 
 from core.pipeline import DataPipeline, load_config
 
 
-def calc_past_appearances(group):
+def calc_past_appearances(group: pd.DataFrame) -> pd.DataFrame:
     """累積出場回数（その年より前）を計算"""
     group = group.sort_values("year")
     group["past_appearances"] = group["appeared"].cumsum().shift(1, fill_value=0)
     return group
 
 
-def calc_prev_year_appeared(group):
+def calc_prev_year_appeared(group: pd.DataFrame) -> pd.DataFrame:
     """前年出場有無を計算"""
     group = group.sort_values("year")
     group["prev_year_appeared"] = group["appeared"].shift(1, fill_value=0)
     return group
 
 
-def calc_consecutive_years(group):
+def calc_consecutive_years(group: pd.DataFrame) -> pd.DataFrame:
     """連続出場年数を計算"""
     group = group.sort_values("year")
-    consecutive = []
+    consecutive: list[int] = []
     count = 0
     for appeared in group["appeared"].shift(1, fill_value=0):
         if appeared == 1:
@@ -58,8 +59,12 @@ class Step4Pipeline(DataPipeline):
         super().__init__(config, data_dir)
         self.target_years = config["data_collection"]["target_years"]
         self.spotify_defaults = config["learning_data"]["spotify_defaults"]
+        self.google_trends_defaults = config["learning_data"].get(
+            "google_trends_defaults", {}
+        )
         self.raw_spotify_dir = data_dir / "raw" / "spotify"
         self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
+        self.raw_trends_dir = data_dir / "raw" / "google_trends"
         self.processed_dir = data_dir / "processed"
         self.processed_dir.mkdir(parents=True, exist_ok=True)
 
@@ -185,6 +190,50 @@ class Step4Pipeline(DataPipeline):
         matched = df_merged["has_spotify_data"].sum()
         print(f"  Spotifyデータあり: {matched}行 ({matched / len(df_merged):.1%})")
 
+        # ========== [5.5] Googleトレンドデータ結合 ==========
+        trends_file = self.raw_trends_dir / "artist_trends.csv"
+        if trends_file.exists():
+            print("\n[5.5] Googleトレンドデータ結合")
+
+            df_trends = pd.read_csv(trends_file)
+            print(f"  トレンドデータ: {len(df_trends)}行")
+
+            # artistカラムをartist_normalizedとして扱う（紅白アーティスト名がそのまま入っている）
+            df_trends = df_trends.rename(columns={"artist": "artist_normalized"})
+
+            # LEFT JOIN
+            trends_cols = [
+                "artist_normalized",
+                "year",
+                "trend_avg_interest",
+                "trend_peak_interest",
+                "trend_volatility",
+                "has_trends_data",
+            ]
+            df_trends_subset = df_trends[trends_cols].copy()
+
+            df_merged = df_merged.merge(
+                df_trends_subset, on=["artist_normalized", "year"], how="left"
+            )
+
+            # 欠損値を0埋め
+            for col, default in self.google_trends_defaults.items():
+                if col in df_merged.columns:
+                    df_merged[col] = df_merged[col].fillna(default)
+
+            # has_trends_dataがNaNの場合は0に
+            if "has_trends_data" in df_merged.columns:
+                df_merged["has_trends_data"] = (
+                    df_merged["has_trends_data"].fillna(0).astype(int)
+                )
+
+            trends_matched = df_merged["has_trends_data"].sum()
+            print(
+                f"  トレンドデータあり: {trends_matched}行 ({trends_matched / len(df_merged):.1%})"
+            )
+        else:
+            print("\n[5.5] Googleトレンドデータ結合（スキップ: ファイルなし）")
+
         # ========== [6] 紅白出場フラグ作成 ==========
         print("\n[6] 紅白出場フラグ作成")
 
@@ -252,6 +301,18 @@ class Step4Pipeline(DataPipeline):
             "appeared",
         ]
 
+        # Googleトレンド特徴量を追加（存在する場合）
+        trends_feature_cols = [
+            "trend_avg_interest",
+            "trend_peak_interest",
+            "trend_volatility",
+            "has_trends_data",
+        ]
+        for col in trends_feature_cols:
+            if col in df_merged.columns:
+                # appearedの前に挿入
+                feature_cols.insert(-1, col)
+
         df_learning = df_merged[feature_cols].copy()
 
         # ========== [9] 保存 ==========
@@ -276,6 +337,10 @@ class Step4Pipeline(DataPipeline):
 
         print("\n--- Spotifyデータ有無 ---")
         print(df_learning["has_spotify_data"].value_counts())
+
+        if "has_trends_data" in df_learning.columns:
+            print("\n--- Googleトレンドデータ有無 ---")
+            print(df_learning["has_trends_data"].value_counts())
 
         print("\n--- 年別出場者数 ---")
         yearly = df_learning.groupby("year").agg(
