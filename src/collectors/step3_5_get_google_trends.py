@@ -57,7 +57,7 @@ class Step35Pipeline(DataPipeline):
         self.google_trends_config = config.get("google_trends", {})
         self.enabled = self.google_trends_config.get("enabled", True)
         self.geo = self.google_trends_config.get("geo", "JP")
-        self.request_interval = self.google_trends_config.get("request_interval", 10)
+        self.request_interval = self.google_trends_config.get("request_interval", 30)
         self.max_retries = self.google_trends_config.get("max_retries", 3)
         self.checkpoint_interval = self.google_trends_config.get(
             "checkpoint_interval", 20
@@ -123,9 +123,10 @@ class Step35Pipeline(DataPipeline):
 
         for attempt in range(self.max_retries):
             try:
-                # リクエスト構築
+                # リクエスト構築（「アーティスト」を付加して検索精度向上）
+                search_query = f"{artist} アーティスト"
                 pytrends.build_payload(
-                    kw_list=[artist],
+                    kw_list=[search_query],
                     cat=0,  # 全カテゴリ
                     timeframe=timeframe,
                     geo=self.geo,
@@ -134,11 +135,11 @@ class Step35Pipeline(DataPipeline):
                 # Interest Over Time取得
                 df_interest = pytrends.interest_over_time()
 
-                if df_interest.empty or artist not in df_interest.columns:
+                if df_interest.empty or search_query not in df_interest.columns:
                     return None
 
                 # 統計量計算
-                values = df_interest[artist].values
+                values = df_interest[search_query].values
                 return {
                     "trend_avg_interest": float(values.mean()),
                     "trend_peak_interest": float(values.max()),
@@ -186,8 +187,13 @@ class Step35Pipeline(DataPipeline):
         df_checkpoint.to_csv(output_file, index=False, encoding="utf-8-sig")
         print(f"\n  [チェックポイント] {processed_count}件処理済み、保存完了")
 
-    def execute(self) -> bool:
-        """パイプライン実行"""
+    def execute(self, retry_failed: bool = False) -> bool:
+        """
+        パイプライン実行
+
+        Args:
+            retry_failed: Trueの場合、has_trends_data=0のデータのみ再取得
+        """
         print("=" * 60)
         print("Step 3.5: Googleトレンドデータ取得")
         print("=" * 60)
@@ -235,16 +241,30 @@ class Step35Pipeline(DataPipeline):
 
         output_file = self.get_output_files()[0]
         existing_pairs = set()
+        failed_pairs = set()
         current_year = datetime.now().year
 
         if output_file.exists():
             df_existing = pd.read_csv(output_file)
             # 今年のデータは毎回更新（部分データのため）
             df_existing = df_existing[df_existing["year"] != current_year]
+
+            # 失敗したペア（has_trends_data=0）を抽出
+            df_failed = df_existing[df_existing["has_trends_data"] == 0]
+            failed_pairs = set(zip(df_failed["artist"], df_failed["year"].astype(int)))
+
+            # 成功したペアのみを既存として扱う
+            df_success = df_existing[df_existing["has_trends_data"] == 1]
             existing_pairs = set(
-                zip(df_existing["artist"], df_existing["year"].astype(int))
+                zip(df_success["artist"], df_success["year"].astype(int))
             )
-            print(f"  既存データ（今年以外）: {len(df_existing)}件")
+            print(f"  既存データ（成功）: {len(existing_pairs)}件")
+            print(f"  既存データ（失敗）: {len(failed_pairs)}件")
+
+            if retry_failed:
+                print("  → 失敗データを再取得対象に含めます")
+                # 失敗データを除外して保持
+                df_existing = df_success
         else:
             df_existing = pd.DataFrame()
             print("  既存データなし（新規作成）")
@@ -257,11 +277,22 @@ class Step35Pipeline(DataPipeline):
             y for y in self.target_years if self.get_timeframe_for_year(y) is not None
         ]
         all_pairs = [(a, y) for a in artists for y in fetchable_years]
-        pairs_to_fetch = [p for p in all_pairs if p not in existing_pairs]
+
+        if retry_failed:
+            # 失敗データのみ再取得
+            pairs_to_fetch = [p for p in all_pairs if p in failed_pairs]
+        else:
+            # 新規のみ取得（成功済みをスキップ、失敗済みもスキップ）
+            pairs_to_fetch = [
+                p
+                for p in all_pairs
+                if p not in existing_pairs and p not in failed_pairs
+            ]
 
         print(f"  全組み合わせ: {len(all_pairs)}件")
-        print(f"  既存（スキップ）: {len(existing_pairs)}件")
-        print(f"  新規取得対象: {len(pairs_to_fetch)}件")
+        print(f"  既存成功（スキップ）: {len(existing_pairs)}件")
+        print(f"  既存失敗: {len(failed_pairs)}件")
+        print(f"  取得対象: {len(pairs_to_fetch)}件")
 
         if not pairs_to_fetch:
             print("\n取得対象がありません")
@@ -386,11 +417,21 @@ class Step35Pipeline(DataPipeline):
 
 def main():
     """スタンドアロン実行用のエントリーポイント"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Google Trendsデータ取得")
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="has_trends_data=0のデータのみ再取得",
+    )
+    args = parser.parse_args()
+
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
     pipeline = Step35Pipeline(config, data_dir)
-    success = pipeline.execute()
+    success = pipeline.execute(retry_failed=args.retry_failed)
 
     sys.exit(0 if success else 1)
 
