@@ -23,4 +23,5 @@ dependencies = [
 dev = [
     "ruff>=0.14.8",
     "pytest>=8.0.0",
+    "ty>=0.0.9",
 ]
