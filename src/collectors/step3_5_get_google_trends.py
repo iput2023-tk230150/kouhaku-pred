@@ -109,6 +109,9 @@ class Step35Pipeline(DataPipeline):
         """
         アーティストの指定審査年度のGoogleトレンドデータを取得
 
+        基準キーワード「音楽」と比較して相対的な検索量を算出。
+        これによりアーティスト間の比較が可能になる。
+
         Args:
             pytrends: TrendReqインスタンス
             artist: アーティスト名
@@ -121,12 +124,14 @@ class Step35Pipeline(DataPipeline):
         if timeframe is None:
             return None
 
+        # 基準キーワード（アーティスト間比較用）
+        baseline_keyword = "音楽"
+
         for attempt in range(self.max_retries):
             try:
-                # リクエスト構築（「アーティスト」を付加して検索精度向上）
-                search_query = f"{artist} アーティスト"
+                # リクエスト構築（基準キーワードと同時取得で相対比較）
                 pytrends.build_payload(
-                    kw_list=[search_query],
+                    kw_list=[artist, baseline_keyword],
                     cat=0,  # 全カテゴリ
                     timeframe=timeframe,
                     geo=self.geo,
@@ -135,15 +140,31 @@ class Step35Pipeline(DataPipeline):
                 # Interest Over Time取得
                 df_interest = pytrends.interest_over_time()
 
-                if df_interest.empty or search_query not in df_interest.columns:
+                if df_interest.empty or artist not in df_interest.columns:
                     return None
 
-                # 統計量計算
-                values = df_interest[search_query].values
+                # アーティストの値
+                artist_values = df_interest[artist].values
+
+                # 基準キーワードに対する相対値を計算
+                if baseline_keyword in df_interest.columns:
+                    baseline_values = df_interest[baseline_keyword].values
+                    baseline_avg = float(baseline_values.mean())
+                    # 基準キーワードの平均が0の場合は相対値を0とする
+                    if baseline_avg > 0:
+                        relative_interest = (
+                            float(artist_values.mean()) / baseline_avg * 100
+                        )
+                    else:
+                        relative_interest = 0.0
+                else:
+                    relative_interest = 0.0
+
                 return {
-                    "trend_avg_interest": float(values.mean()),
-                    "trend_peak_interest": float(values.max()),
-                    "trend_volatility": float(values.std()),
+                    "trend_avg_interest": float(artist_values.mean()),
+                    "trend_peak_interest": float(artist_values.max()),
+                    "trend_volatility": float(artist_values.std()),
+                    "trend_relative_interest": round(relative_interest, 2),
                     "has_trends_data": 1,
                 }
 
@@ -347,6 +368,7 @@ class Step35Pipeline(DataPipeline):
                             "trend_avg_interest": 0,
                             "trend_peak_interest": 0,
                             "trend_volatility": 0,
+                            "trend_relative_interest": 0,
                             "has_trends_data": 0,
                         }
                     )
