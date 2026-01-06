@@ -166,7 +166,7 @@ class Step5Pipeline(DataPipeline):
             print(f"    テスト: {len(X_test)}件 (出場: {y_test.sum()}件)")
 
             # LightGBMモデル学習
-            model = lgb.LGBMClassifier(
+            model = lgb.LGBMClassifier(  # type: ignore[attr-defined]
                 objective="binary",
                 n_estimators=100,
                 learning_rate=0.1,
@@ -255,7 +255,7 @@ class Step5Pipeline(DataPipeline):
 
         print(f"  訓練データ: {len(X_all)}件 (出場: {y_all.sum()}件)")
 
-        final_model = lgb.LGBMClassifier(
+        final_model = lgb.LGBMClassifier(  # type: ignore[attr-defined]
             objective="binary",
             n_estimators=100,
             learning_rate=0.1,
@@ -311,7 +311,7 @@ class Step5Pipeline(DataPipeline):
             X_test_2024 = df_test_2024[self.feature_cols]
             y_test_2024 = df_test_2024[self.target_col]
 
-            model_2024 = lgb.LGBMClassifier(
+            model_2024 = lgb.LGBMClassifier(  # type: ignore[attr-defined]
                 objective="binary",
                 n_estimators=100,
                 learning_rate=0.1,

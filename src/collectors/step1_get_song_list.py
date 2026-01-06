@@ -18,7 +18,7 @@ from typing import Any
 from src.core.pipeline import DataPipeline, load_config
 
 
-def clean_number(value: str) -> int:
+def clean_number(value: str | None) -> int:
     """数値文字列をintに変換"""
     if not value:
         return 0

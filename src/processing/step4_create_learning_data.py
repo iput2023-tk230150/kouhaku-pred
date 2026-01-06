@@ -156,7 +156,9 @@ class Step4Pipeline(DataPipeline):
 
         # 全組み合わせ
         base_data = list(product(all_candidates, self.target_years))
-        df_base = pd.DataFrame(base_data, columns=["artist_normalized", "year"])
+        df_base = pd.DataFrame(
+            base_data, columns=pd.Index(["artist_normalized", "year"])
+        )
         print(f"  ベースレコード数: {len(df_base)}")
 
         # ========== [5] Spotifyデータ結合 ==========

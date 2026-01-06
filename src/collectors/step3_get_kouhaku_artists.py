@@ -332,7 +332,8 @@ class Step3Pipeline(DataPipeline):
 
         # 複数年出場アーティスト
         print("\n複数年出場アーティスト（3回以上）:")
-        artist_counts = df.groupby("artist").size().sort_values(ascending=False)
+        artist_series = df.groupby("artist").size()
+        artist_counts = artist_series.sort_values(ascending=False)  # type: ignore[call-overload]
         multi_year = artist_counts[artist_counts >= 3]
         if len(multi_year) > 0:
             print(multi_year.head(15))
