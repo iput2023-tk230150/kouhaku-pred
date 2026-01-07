@@ -14,6 +14,46 @@ class ArtistNameNormalizer:
     def __init__(self):
         self.kks = pykakasi.kakasi()
 
+        # 旧字体→新字体の変換マップ（Google Trends対応）
+        self.old_to_new_kanji = {
+            "髙": "高",
+            "德": "徳",
+            "﨑": "崎",
+            "濵": "浜",
+            "邊": "辺",
+            "邉": "辺",
+            "齋": "斎",
+            "齊": "斉",
+            "國": "国",
+            "廣": "広",
+            "櫻": "桜",
+            "澤": "沢",
+            "藤": "藤",  # 異体字対応
+            "眞": "真",
+            "實": "実",
+            "學": "学",
+            "鷗": "鴎",
+            "龍": "竜",
+            "萬": "万",
+            "壽": "寿",
+            "靜": "静",
+            "淵": "渕",
+            "黑": "黒",
+            "增": "増",
+            "鐵": "鉄",
+            "藝": "芸",
+            "惠": "恵",
+            "峯": "峰",
+            "榮": "栄",
+            "禮": "礼",
+            "稀": "稀",
+            "條": "条",
+            "絲": "糸",
+            "莊": "荘",
+            "嶋": "島",
+            "嶌": "島",
+        }
+
         # 記号の置換ルール
         self.symbol_replacements = {
             "&": "AND",
@@ -51,6 +91,23 @@ class ArtistNameNormalizer:
         """日本語をローマ字に変換"""
         result = self.kks.convert(text)
         return "".join([item["hepburn"] for item in result])
+
+    def normalize_old_kanji(self, text: str) -> str:
+        """旧字体・異体字を新字体に変換（Google Trends対応）"""
+        result = text
+        for old_char, new_char in self.old_to_new_kanji.items():
+            result = result.replace(old_char, new_char)
+        return result
+
+    def normalize_for_search(self, name: str) -> str:
+        """
+        検索用に名前を正規化（Google Trends用）
+        - 旧字体→新字体変換のみ
+        - 元の表記を維持しつつ検索しやすくする
+        """
+        if not name:
+            return ""
+        return self.normalize_old_kanji(str(name))
 
     def normalize_long_vowels(self, text: str) -> str:
         """長音を正規化"""
