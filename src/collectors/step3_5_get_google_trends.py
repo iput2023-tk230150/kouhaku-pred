@@ -5,9 +5,15 @@ pytrendsを使用してアーティストのGoogle検索トレンドデータを
 
 入力:
 - data/raw/kouhaku/kouhaku_artists.csv: 紅白出場者リスト（Step 3の出力）
+- data/raw/spotify/jp_yearly_stats.csv: Spotify年別統計（Step 2の出力）
 
 出力:
 - data/raw/google_trends/artist_trends.csv: アーティスト×年別のトレンドデータ
+
+対象アーティスト:
+- 紅白出場者（過去〜現在）
+- Spotifyデータに含まれるアーティスト
+- 両者を統合してユニークなアーティストリストを作成
 
 審査期間:
 - ビルボードジャパン準拠: 11月第4週木曜日〜翌11月第3週水曜日
@@ -25,6 +31,10 @@ from pytrends.request import TrendReq
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 
 from src.core.pipeline import DataPipeline, get_fiscal_year_boundary, load_config
+
+# プロジェクトルートをパスに追加してutilsをインポート
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from utils.normalizer import ArtistNameNormalizer
 
 
 def get_fiscal_year_period(fiscal_year: int) -> tuple[date, date]:
@@ -68,16 +78,39 @@ class Step35Pipeline(DataPipeline):
 
         # ディレクトリ設定
         self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
+        self.raw_spotify_dir = data_dir / "raw" / "spotify"
         self.raw_trends_dir = data_dir / "raw" / "google_trends"
         self.raw_trends_dir.mkdir(parents=True, exist_ok=True)
+        self.mapping_dir = data_dir / "processed" / "mapping"
+
+        # 名前正規化（旧字体→新字体変換用）
+        self.normalizer = ArtistNameNormalizer()
+
+        # Spotify名→日本語名のマッピングを読み込み
+        self.name_mapping: dict[str, str] = {}
+        mapping_file = self.mapping_dir / "final_mapping.csv"
+        if mapping_file.exists():
+            df_mapping = pd.read_csv(mapping_file)
+            # spotify_name → kouhaku_name のマッピング
+            self.name_mapping = dict(
+                zip(df_mapping["spotify_name"], df_mapping["kouhaku_name"])
+            )
 
     def get_output_files(self) -> list[Path]:
         return [self.raw_trends_dir / "artist_trends.csv"]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
+        missing = []
         kouhaku_file = self.raw_kouhaku_dir / "kouhaku_artists.csv"
+        spotify_file = self.raw_spotify_dir / "jp_yearly_stats.csv"
+
         if not kouhaku_file.exists():
-            return False, [str(kouhaku_file)]
+            missing.append(str(kouhaku_file))
+        if not spotify_file.exists():
+            missing.append(str(spotify_file))
+
+        if missing:
+            return False, missing
         return True, []
 
     def get_timeframe_for_year(self, fiscal_year: int) -> str | None:
@@ -127,11 +160,17 @@ class Step35Pipeline(DataPipeline):
         # 基準キーワード（アーティスト間比較用）
         baseline_keyword = "音楽"
 
+        # 英語名→日本語名に変換（マッピングがあれば）
+        japanese_name = self.name_mapping.get(artist, artist)
+
+        # 旧字体→新字体変換（Google Trendsは旧字体を認識しない場合がある）
+        search_name = self.normalizer.normalize_for_search(japanese_name)
+
         for attempt in range(self.max_retries):
             try:
                 # リクエスト構築（基準キーワードと同時取得で相対比較）
                 pytrends.build_payload(
-                    kw_list=[artist, baseline_keyword],
+                    kw_list=[search_name, baseline_keyword],
                     cat=0,  # 全カテゴリ
                     timeframe=timeframe,
                     geo=self.geo,
@@ -140,11 +179,11 @@ class Step35Pipeline(DataPipeline):
                 # Interest Over Time取得
                 df_interest = pytrends.interest_over_time()
 
-                if df_interest.empty or artist not in df_interest.columns:
+                if df_interest.empty or search_name not in df_interest.columns:
                     return None
 
-                # アーティストの値
-                artist_values = df_interest[artist].values
+                # アーティストの値（検索名でカラムを参照）
+                artist_values = df_interest[search_name].values
 
                 # 基準キーワードに対する相対値を計算
                 if baseline_keyword in df_interest.columns:
@@ -231,18 +270,28 @@ class Step35Pipeline(DataPipeline):
             print("エラー: 依存ファイルが見つかりません:")
             for f in missing:
                 print(f"  - {f}")
-            print("先に step3 を実行してください")
+            print("先に step1, step3 を実行してください")
             return False
 
         # ========== [1] データ読み込み ==========
         print("\n[1] データ読み込み")
 
+        # 紅白出場者を読み込み
         kouhaku_file = self.raw_kouhaku_dir / "kouhaku_artists.csv"
         df_kouhaku = pd.read_csv(kouhaku_file)
+        kouhaku_artists = set(df_kouhaku["artist"].unique())
+        print(f"  紅白出場者: {len(kouhaku_artists)}組")
 
-        # ユニークなアーティスト名を取得
-        artists = df_kouhaku["artist"].unique().tolist()
-        print(f"  対象アーティスト: {len(artists)}組")
+        # Spotifyデータのアーティストを読み込み
+        spotify_file = self.raw_spotify_dir / "jp_yearly_stats.csv"
+        df_spotify = pd.read_csv(spotify_file)
+        spotify_artists = set(df_spotify["artist"].unique())
+        print(f"  Spotifyアーティスト: {len(spotify_artists)}組")
+
+        # 両方を統合してユニークなアーティストリストを作成
+        all_artists = kouhaku_artists | spotify_artists
+        artists = sorted(list(all_artists))
+        print(f"  統合後（重複除去）: {len(artists)}組")
         print(f"  対象年: {self.target_years}")
 
         # 審査期間の表示
@@ -328,7 +377,15 @@ class Step35Pipeline(DataPipeline):
         print("\n[4] Googleトレンドデータ取得")
 
         # pytrendsインスタンス作成
-        pytrends = TrendReq(hl="ja-JP", tz=540)
+        pytrends = TrendReq(
+            hl="ja-JP",
+            tz=540,
+            requests_args={
+                "headers": {
+                    "Cookie": "NID=527=xYZQD7nDrGV1VwUh7wu5myqgL34NhoH8oA3zpQtw3sJez_9wbCRnv9h34swxsSR5xzAZIEmTc0D4s6p7pDEACYokpqqWSEmLT-8zqo375UBIE4eFRaPXiWhmKFoS6_YOwZeEHDbRxf2rm1JW_zoCNXjeD-ylalvkoK4oxCJZZRsYuRErV_a0RmsiKKVWoUl8M1sVLtS9fkCwIVbQ4AEilDcCaku9O2puF7LSOiNoj_aLGzOKTDORamxfRMjNLyNO5nWBw5GqAFkU-x5OnZPXSgL5ZQwd6Ak7qMR57uSsHNaXc9FRPTXOA9pHeg1VFqYU_zoPnG9MelGo-AJ7w3PiyVqy22WFBDOZLNQBn8JJyOz5zwmP_xc4e625pkTBm6RxIy6zdn4iduGjWNvOvXdAJt97GagDcFBauHEoyg4q3gzBDXFQ4VzoERwGxu3BBDEnN0PDJ7gdmc6GbdOGlMgtMgMI4oa4TG2nGpgQMZBHAmY8Gd3Y5eA6aYQHKttkyVCkAycKIR7XLwGU6QBDPcUvfigfcNF42jsCtWLAJq_E-juSQgh__xWJ6YFiawcV50J6jv1sKIgtW16qU6A692C76UyLmE4zIMU8MJNjMQvlyB3bbLhvb0jvbcSCb7s3kSqHJrt49RKHsKom7BjAvs7XqrQwbIw2hWJM0uzQ0gWwe6Rz1oFvt32jeq-2Hh-3S8rvVhi_d11Fv8EfDje0zWrO6sq1qD0Xet4kskEFAGU3nD8RVNi0M_vhIugwAMYBUDEy87aPyHji6ixhNIZWOBJ13g8TANMUxxzR3m61k7txz1TSj7x8a-fO0OqNsun1VcKlZe8_xIQns-UO4xRNU-CKGAILuA3Tanyq-xphPw-XtYvu3ecXHoobRxvXwY2qh5zQgXC5mcPXWpQzIJVYor9A-9MFiWiri7mu97CaPGorFQUEAkQgW5XvucMp6muxch_Tqe7MhYf1jh60Ryd-f2N_PYUVme72IhT9SE8Hk4LdJxtnXpzoOaU3AGlIWQhhT35xDu66eIcrv92K7Ihz4EP7yKsc9B8EbYSeSbzGJ_GchB2Rvg51ZtB2v9CBA6PJdCM4kXCditjyyhaR6vKx3Vh1KziM7DeFF4ZQ6raJK0gxvFw82nNa7npVpNZnroOF82CLHVVamRpKfAt5P8PqYRaKQeqcNPWAsRig3Ol8xo8N4GL48QfUeGCcZ_kR7l4G5IEJ3OZy4hpYwTIwpQAL4UFNfY4ZrhqtYfoImb0hXwu0Xqvzo_3UFafz83Z0D4NAFQttSPB1bU9Kd-1E7IPmYfiCNcsBX6IJSiZ-l19XGxknjt4QfdL7K0g2oebSKiHgN9rfPANKV632JkErGkDvD-cbcaSewFzwz2AjPu_9e0xc1YQ_TVIBaKeFQ2dSH2jzs9jhedcd8R-z87SfQeQJRpmFNhEN7lrsxJAYItmhVcdzPfdbNI_haDbJewwWqjyeWOsxLPHQfi7qxuQtd94ZeUQQCIdr1Z8PLouYGPWluCRdfj7SlUdsmVBZx8Dodpbq_XvoHFhN8kCRxqlpZURup58jWmPOqKS8TgiplKhXveW0ZhqLFvyEC7Fiz1cMJyji2aIL6qVHR7fVim0OCghdQSuonK3SSyoc9adyPZwo9GWJ-Vpmt1BUDo7Hs7iSL8NUq4c0ijNXx6WR8XZhwXUw8f5viSGHjI5G2uvUH4r_5OMPzBIMRmK_-juGkHP91J5V-LwxaRtUr7c8KCFdQm4j2bg5xBEPhe6dDQPGXUL7JU5XL6Ps70KbXEdsvuWDdfnE8kAbZ6qV6c_LEQKvD09pAuXKeYQU_m8Ngcs9XRs3IYTFO4FDLCvIOFPmdEeBACXbgZkcqXEKBg5x1VNET4tSSlQ8yFQnXMS0MRMYDTIIieg90IOMu7BA8hDObE8vQFdIXIK0ls6C6XxlkiphM_6AdTSUmEMC1pnvyK_uRz2q3Yk4wy_cngza413Kvb30c1zfL6lpb04DqMd6_ycfvpjld10tf4Cvmj1VHoRWcb4uHw5aiW4VM9NU-hZWZ-wSrpPyP3LtJ_OgDmDW5_PkR2U4Bwt7dsF_GhdyziC-XgUrYxbijI664ijDmyzK3l4ZWO3An0AYnjvNJoAXTT_iOZ68MbTwjLeWdiDrePe58BZ9Ik8a-WweJNvqNeiPEaYeKGOnd8MJwPU11Ph5xzoqpo31SPmtQf10btjtMKkUBc_2iBsoEsL_kNH24l7lVoTP6oDa7g52ho6wYqKYZ0nb6YLS-1Wfibq0TJsC1xjs4vBtRiDs2KdhhnY6SfY8H0Afs4-xGaYL6QtT34X313JOnjvoh1NDY0Wclv250VMcX_rV3RUuEtRjpQCFV2PISpJQO2nSURUclNYKdDQwuFBeq7VBtk7H27CKjblyVJKoGsC2vJrz4HNqEm5U3MdfVdmHiZ6Ep75FM2qG31Kr33LbFtGizKXm0E5GBf558WL02C2q2JIW9mm-lLUB_OW7RXaWAezruwF1jFW_kuZJ2LewmSp7rSW5ZcV9Od_JAJtxqFRsruHc7Kj5MxQQ3f_ge7pLv__KWjK7ylHsYi_QmMkcJz1tJHCQ9FidUqau0ronA0qQS5S7GuI8__ie8o2SpqCCgUNBdi3tzqx5RzE5mPufJEXV4wDdwr9x8_E0SoZb3eghlHS6jpF2qRAiWc4zt36YkZ4APWCUEUJc8pKqUgFg1tl-gzcdbty7EmyNK7rmIyotfxMr0ipuvkx75yxhechEhMFWhFSNiw"
+                }
+            },
+        )
 
         results = []
         success_count = 0
@@ -443,6 +500,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Google Trendsデータ取得")
     parser.add_argument(
+        "-r",
         "--retry-failed",
         action="store_true",
         help="has_trends_data=0のデータのみ再取得",
