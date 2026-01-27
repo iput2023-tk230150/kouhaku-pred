@@ -38,7 +38,7 @@ class Step6Pipeline(DataPipeline):
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
-        # 特徴量カラム
+        # 特徴量カラム（基本）
         self.feature_cols = [
             "weeks_on_chart",
             "total_streams",
@@ -50,6 +50,12 @@ class Step6Pipeline(DataPipeline):
             "past_appearances",
             "prev_year_appeared",
             "consecutive_years",
+        ]
+        # Googleトレンド特徴量（オプション）
+        self.trends_feature_cols = [
+            "trend_avg_interest",
+            "trend_peak_interest",
+            "trend_volatility",
         ]
 
     def get_output_files(self) -> list[Path]:
@@ -95,6 +101,12 @@ class Step6Pipeline(DataPipeline):
 
         # 学習データ読み込み
         df = pd.read_csv(self.processed_dir / "learning_data.csv")
+
+        # Googleトレンド特徴量が存在すれば追加
+        for col in self.trends_feature_cols:
+            if col in df.columns and col not in self.feature_cols:
+                self.feature_cols.append(col)
+        print(f"  使用特徴量: {len(self.feature_cols)}個")
 
         # 紅白データがある年のみ使用
         df_with_kouhaku = df[df.groupby("year")["appeared"].transform("sum") > 0]

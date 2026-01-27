@@ -329,28 +329,53 @@ class Step5Pipeline(DataPipeline):
             df_pred_2024 = df_test_2024[["artist", "artist_normalized"]].copy()
             df_pred_2024["actual"] = y_test_2024.values
             df_pred_2024["predicted_prob"] = y_prob_2024
-            df_pred_2024["predicted"] = (y_prob_2024 >= 0.5).astype(int)
 
-            # 予測確率Top20
-            print("\n  予測確率 Top 20:")
-            top20 = df_pred_2024.nlargest(20, "predicted_prob")
-            for i, row in top20.iterrows():
+            # 確率順にソート
+            df_pred_2024 = df_pred_2024.sort_values(
+                "predicted_prob", ascending=False
+            ).reset_index(drop=True)
+
+            # 上位44組を出場予測とする（紅白の出場枠数）
+            top_n = 44
+            df_pred_2024["predicted"] = 0
+            df_pred_2024.loc[: top_n - 1, "predicted"] = 1
+            df_pred_2024["rank"] = range(1, len(df_pred_2024) + 1)
+
+            # 予測出場者リスト（上位44組）
+            print(f"\n  予測出場者リスト（上位{top_n}組）:")
+            predicted_artists = df_pred_2024.head(top_n)
+            hit_count = 0
+            for _, row in predicted_artists.iterrows():
                 actual_mark = "◯" if row["actual"] == 1 else "×"
+                if row["actual"] == 1:
+                    hit_count += 1
                 print(
-                    f"    {row['artist']:25s}: {row['predicted_prob']:.3f} (実際: {actual_mark})"
+                    f"    {row['rank']:2d}. {row['artist']:25s}: "
+                    f"{row['predicted_prob']:.3f} (実際: {actual_mark})"
                 )
+
+            # 的中率サマリー
+            actual_appeared = int(y_test_2024.sum())
+            print("\n  的中率サマリー:")
+            print(f"    予測出場: {top_n}組")
+            print(f"    実際出場: {actual_appeared}組")
+            print(f"    的中数: {hit_count}組 / {top_n}組")
+            print(f"    Precision（予測出場のうち実際に出場）: {hit_count / top_n:.1%}")
+            print(
+                f"    Recall（実際出場のうち予測できた）: {hit_count / actual_appeared:.1%}"
+            )
 
             # 予測結果保存
             pred_path = self.analysis_dir / "predictions_2024.csv"
             df_pred_2024.to_csv(pred_path, index=False, encoding="utf-8-sig")
             print(f"\n  2024年予測結果を保存: {pred_path}")
 
-            # 分類レポート
-            print("\n  分類レポート (2024年):")
+            # 分類レポート（上位44組ベース）
+            print(f"\n  分類レポート (2024年, 上位{top_n}組を出場予測):")
             print(
                 classification_report(
-                    y_test_2024,
-                    (y_prob_2024 >= 0.5).astype(int),
+                    df_pred_2024["actual"],
+                    df_pred_2024["predicted"],
                     target_names=["非出場", "出場"],
                 )
             )

@@ -30,13 +30,14 @@ class Step7Pipeline(DataPipeline):
         super().__init__(config, data_dir)
         self.raw_spotify_dir = data_dir / "raw" / "spotify"
         self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
+        self.raw_trends_dir = data_dir / "raw" / "google_trends"
         # models_dirはdata_dirの外（プロジェクトルート直下）
         project_root = data_dir.parent
         self.models_dir = project_root / config["paths"]["models_dir"]
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
-        # 特徴量カラム
+        # 特徴量カラム（基本）
         self.feature_cols = [
             "weeks_on_chart",
             "total_streams",
@@ -48,6 +49,12 @@ class Step7Pipeline(DataPipeline):
             "past_appearances",
             "prev_year_appeared",
             "consecutive_years",
+        ]
+        # Googleトレンド特徴量（オプション）
+        self.trends_feature_cols = [
+            "trend_avg_interest",
+            "trend_peak_interest",
+            "trend_volatility",
         ]
 
     def get_output_files(self) -> list[Path]:
@@ -103,6 +110,19 @@ class Step7Pipeline(DataPipeline):
         df_kouhaku_2025 = df_kouhaku[df_kouhaku["year"] == 2025].copy()
         actual_artists_2025 = set(df_kouhaku_2025["artist"].unique())
         print(f"  2025年発表済み出場者: {len(actual_artists_2025)}組")
+
+        # Google Trendsデータ読み込み（存在すれば）
+        trends_file = self.raw_trends_dir / "artist_trends.csv"
+        df_trends_2025 = pd.DataFrame()
+        if trends_file.exists():
+            df_trends = pd.read_csv(trends_file)
+            df_trends_2025 = df_trends[df_trends["year"] == 2025].copy()
+            print(f"  2025年Trendsデータ: {len(df_trends_2025)}アーティスト")
+            # トレンド特徴量を使用
+            for col in self.trends_feature_cols:
+                if col in df_trends_2025.columns and col not in self.feature_cols:
+                    self.feature_cols.append(col)
+        print(f"  使用特徴量: {len(self.feature_cols)}個")
 
         # ========== [2] 候補者データ作成 ==========
         print("\n[2] 候補者データ作成")
@@ -162,6 +182,20 @@ class Step7Pipeline(DataPipeline):
             row["prev_year_appeared"] = prev_year_appeared
             row["consecutive_years"] = consecutive
 
+            # Google Trends特徴量
+            if len(df_trends_2025) > 0:
+                trends_row = df_trends_2025[df_trends_2025["artist"] == artist]
+                if len(trends_row) > 0:
+                    trends_row = trends_row.iloc[0]
+                    row["trend_avg_interest"] = trends_row["trend_avg_interest"]
+                    row["trend_peak_interest"] = trends_row["trend_peak_interest"]
+                    row["trend_volatility"] = trends_row["trend_volatility"]
+                else:
+                    # Trendsデータなし
+                    row["trend_avg_interest"] = 0
+                    row["trend_peak_interest"] = 0
+                    row["trend_volatility"] = 0
+
             candidates.append(row)
 
         df_candidates = pd.DataFrame(candidates)
@@ -172,10 +206,19 @@ class Step7Pipeline(DataPipeline):
 
         X = df_candidates[self.feature_cols]
         probs = model.predict_proba(X)[:, 1]
-        predictions = model.predict(X)
 
         df_candidates["predicted_prob"] = probs
-        df_candidates["predicted"] = predictions
+
+        # 確率順にソート（予測順位を付与）
+        df_candidates = df_candidates.sort_values(
+            "predicted_prob", ascending=False
+        ).reset_index(drop=True)
+        df_candidates["pred_rank"] = df_candidates.index + 1
+
+        # 上位44組を出場予測とする（紅白の出場枠数）
+        top_n = 44
+        df_candidates["predicted"] = 0
+        df_candidates.loc[: top_n - 1, "predicted"] = 1
 
         # 実際の出場フラグと紅組・白組を追加
         df_candidates["actual"] = (
@@ -189,18 +232,12 @@ class Step7Pipeline(DataPipeline):
                 artist_to_group[row["artist"]] = row.get("group")
         df_candidates["group"] = df_candidates["artist"].map(artist_to_group)
 
-        # 確率順にソート（予測順位を付与）
-        df_candidates = df_candidates.sort_values(
-            "predicted_prob", ascending=False
-        ).reset_index(drop=True)
-        df_candidates["pred_rank"] = df_candidates.index + 1
-
         # ========== [5] 結果表示 ==========
         print("\n[5] 予測結果")
 
-        # 出場予測（predicted=1）
+        # 出場予測（上位44組）
         df_predicted = df_candidates[df_candidates["predicted"] == 1]
-        print(f"\n  出場予測アーティスト: {len(df_predicted)}組")
+        print(f"\n  出場予測アーティスト: {len(df_predicted)}組（上位{top_n}組）")
 
         # 発表済み出場者がいる場合は比較表示
         if len(actual_artists_2025) > 0:
@@ -290,12 +327,15 @@ class Step7Pipeline(DataPipeline):
                     f"    Top {n:3d} に含まれる出場者: {count_in_top_n:2d}/{len(df_actual)} ({pct:.1f}%)"
                 )
 
-            # モデル予測との一致
-            predicted_correct = (df_actual["predicted"] == 1).sum()
-            print("\n  モデル出場予測との一致:")
+            # 的中率サマリー（上位44組ベース）
+            hit_count = (df_predicted["actual"] == 1).sum()
+            print(f"\n  的中率サマリー（上位{top_n}組を出場予測）:")
+            print(f"    予測出場: {top_n}組")
+            print(f"    実際出場: {len(df_actual)}組")
+            print(f"    的中数: {hit_count}組 / {top_n}組")
+            print(f"    Precision（予測出場のうち実際に出場）: {hit_count / top_n:.1%}")
             print(
-                f"    発表済み出場者のうち出場予測: {predicted_correct}/{len(df_actual)} "
-                f"({predicted_correct / len(df_actual) * 100:.1f}%)"
+                f"    Recall（実際出場のうち予測できた）: {hit_count / len(df_actual):.1%}"
             )
 
         # ========== [8] 統計情報 ==========
