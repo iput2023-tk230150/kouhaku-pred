@@ -1,7 +1,6 @@
 # NHK紅白歌合戦 出演者予測システム
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 NHK紅白歌合戦の出場者選考において、どの指標（ストリーミング数、過去出場履歴など）が最も重要視されているのかを定量的に明らかにする機械学習プロジェクト。
 
@@ -43,17 +42,18 @@ uv pip install -e .
 ```bash
 cd kouhaku-pred
 
-# 全ステップ実行（Step1〜7）
-uv run python main.py
+# 全ステップ実行（Step1〜8）
+uv run python src/main.py
 
 # 個別実行
-uv run python -m collectors.step1_get_song_list    # 曲リスト取得
-uv run python -m collectors.step2_get_weekly_data  # 週次データ取得（数時間かかります）
-uv run python -m collectors.step3_get_kouhaku_artists  # 紅白出場者リスト取得
-uv run python -m processing.step4_create_learning_data # 学習データ作成
-uv run python -m modeling.step5_train_model        # モデル学習
-uv run python -m modeling.step6_shap_analysis      # SHAP分析
-uv run python -m prediction.step7_predict_2025     # 2025年予測
+uv run python -m src.collectors.step1_get_song_list    # 曲リスト取得
+uv run python -m src.collectors.step2_get_weekly_data  # 週次データ取得（数時間かかります）
+uv run python -m src.collectors.step3_get_kouhaku_artists  # 紅白出場者リスト取得
+uv run python -m src.collectors.step4_get_google_trends    # Googleトレンド取得
+uv run python -m src.processing.step5_create_learning_data # 学習データ作成
+uv run python -m src.modeling.step6_train_model        # モデル学習
+uv run python -m src.modeling.step7_shap_analysis      # SHAP分析
+uv run python -m src.prediction.step8_predict_2025     # 2025年予測
 ```
 
 ## 📁 プロジェクト構成
@@ -65,10 +65,10 @@ kouhaku-pred/
 ├── pyproject.toml       # プロジェクト設定
 │
 ├── core/                # パイプライン基底クラス
-├── collectors/          # データ収集（Step 1-3）
-├── processing/          # データ加工（Step 4）
-├── modeling/            # モデル学習・分析（Step 5-6）
-├── prediction/          # 最終予測（Step 7）
+├── collectors/          # データ収集（Step 1-4）
+├── processing/          # データ加工（Step 5）
+├── modeling/            # モデル学習・分析（Step 6-7）
+├── prediction/          # 最終予測（Step 8）
 ├── utils/               # 正規化・マッピングユーティリティ
 ├── tools/               # デバッグ・補助ツール
 │
@@ -76,9 +76,9 @@ kouhaku-pred/
 ├── tmp/                 # ツール出力用一時ファイル
 │
 └── data/                # 収集データ（.gitignoreで除外）
-    ├── raw/             # Step 1-3の出力（スクレイピングデータ）
-    ├── processed/       # Step 4の出力（learning_data.csv）
-    └── analysis/        # Step 5-7の分析結果（CSV, PNG）
+    ├── raw/             # Step 1-4の出力（スクレイピングデータ）
+    ├── processed/       # Step 5の出力（learning_data.csv）
+    └── analysis/        # Step 6-8の分析結果（CSV, PNG）
 ```
 
 ## 🔄 データパイプライン
@@ -90,13 +90,15 @@ Step 2: 週次チャートデータ取得
    ↓
 Step 3: 紅白出場者リスト取得 (Wikipedia)
    ↓
-Step 4: 学習データ作成
+Step 4: Googleトレンド取得 (pytrends)
    ↓
-Step 5: モデル学習 (LightGBM)
+Step 5: 学習データ作成
    ↓
-Step 6: SHAP分析
+Step 6: モデル学習 (LightGBM)
    ↓
-Step 7: 2025年予測
+Step 7: SHAP分析
+   ↓
+Step 8: 2025年予測
    ↓
 予測結果 (data/analysis/predictions_2025.csv)
 ```
@@ -120,9 +122,9 @@ Step 7: 2025年予測
 
 ## 🤖 今後の実装（TODO）
 
-- [x] Step 5: モデル学習（LightGBM）
-- [x] Step 6: SHAP分析
-- [x] Step 7: 2025年予測
+- [x] Step 6: モデル学習（LightGBM）
+- [x] Step 7: SHAP分析
+- [x] Step 8: 2025年予測
 
 ## ⚠️ 注意事項
 
@@ -137,10 +139,6 @@ Step 7: 2025年予測
 - Spotifyデータがない演歌・伝統音楽アーティストは特徴量が0になります
 - CDセールス、TV出演、NHKへの貢献度などのデータは含まれていません
 - 名前の表記揺れにより一部のアーティストがマッチしない可能性があります
-
-## 📝 ライセンス
-
-MIT License - 詳細は [LICENSE](LICENSE) を参照
 
 ## 🙏 謝辞
 
