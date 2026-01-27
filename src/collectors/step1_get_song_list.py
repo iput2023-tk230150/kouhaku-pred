@@ -126,10 +126,6 @@ class Step1Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 1: kworb.net 曲リスト取得")
-        print("=" * 60)
-
         # データ取得
         songs = self.fetch_song_list()
 

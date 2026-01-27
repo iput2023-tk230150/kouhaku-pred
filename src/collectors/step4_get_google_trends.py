@@ -1,5 +1,5 @@
 """
-Step 3.5: Googleトレンドデータ取得スクリプト
+Step 4: Googleトレンドデータ取得スクリプト
 ==========================================
 pytrendsを使用してアーティストのGoogle検索トレンドデータを取得
 
@@ -57,8 +57,8 @@ def get_fiscal_year_period(fiscal_year: int) -> tuple[date, date]:
     return start_date, end_date
 
 
-class Step35Pipeline(DataPipeline):
-    """Step3.5: Googleトレンドデータ取得パイプライン"""
+class Step4Pipeline(DataPipeline):
+    """Step4: Googleトレンドデータ取得パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
@@ -254,10 +254,6 @@ class Step35Pipeline(DataPipeline):
         Args:
             retry_failed: Trueの場合、has_trends_data=0のデータのみ再取得
         """
-        print("=" * 60)
-        print("Step 3.5: Googleトレンドデータ取得")
-        print("=" * 60)
-
         # 有効化チェック
         if not self.enabled:
             print("\nGoogleトレンドデータ取得は無効化されています")
@@ -510,7 +506,7 @@ def main():
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
-    pipeline = Step35Pipeline(config, data_dir)
+    pipeline = Step4Pipeline(config, data_dir)
     success = pipeline.execute(retry_failed=args.retry_failed)
 
     sys.exit(0 if success else 1)

@@ -1,10 +1,10 @@
 """
 Modeling モジュール
 =====================
-モデル学習・分析パイプライン（Step5〜6）
+モデル学習・分析パイプライン（Step6〜7）
 """
 
-from .step5_train_model import Step5Pipeline
-from .step6_shap_analysis import Step6Pipeline
+from .step6_train_model import Step6Pipeline
+from .step7_shap_analysis import Step7Pipeline
 
-__all__ = ["Step5Pipeline", "Step6Pipeline"]
+__all__ = ["Step6Pipeline", "Step7Pipeline"]

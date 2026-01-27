@@ -1,5 +1,5 @@
 """
-Step 4: 学習データ作成スクリプト
+Step 5: 学習データ作成スクリプト
 ================================
 紅白出場者 + Spotify上位アーティスト を候補者として、
 紅白出場予測用の学習データを作成
@@ -52,8 +52,8 @@ def calc_consecutive_years(group: pd.DataFrame) -> pd.DataFrame:
     return group
 
 
-class Step4Pipeline(DataPipeline):
-    """Step4: 学習データ作成パイプライン"""
+class Step5Pipeline(DataPipeline):
+    """Step5: 学習データ作成パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
@@ -85,10 +85,6 @@ class Step4Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 4: 学習データ作成")
-        print("=" * 60)
-
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
@@ -373,7 +369,7 @@ def main():
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
-    pipeline = Step4Pipeline(config, data_dir)
+    pipeline = Step5Pipeline(config, data_dir)
     success = pipeline.execute()
 
     sys.exit(0 if success else 1)

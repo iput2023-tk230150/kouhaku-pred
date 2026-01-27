@@ -178,10 +178,6 @@ class Step2Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 2: 週次データ取得")
-        print("=" * 60)
-
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:

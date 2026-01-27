@@ -1,25 +1,25 @@
 """
 紅白予測システム パイプライン制御スクリプト
 ==========================================
-Step1-7（3.5含む）を順次実行し、データ収集からモデル学習・予測まで行う
+Step1-8を順次実行し、データ収集からモデル学習・予測まで行う
 
 使い方:
     python main.py                 # 全ステップ実行
-    python main.py -s 3 -e 5       # Step3〜5を実行（3.5含む）
+    python main.py -s 3 -e 5       # Step3〜5を実行
     python main.py -s 4            # Step4以降を実行
     python main.py -e 3            # Step1〜3を実行
     python main.py -n 1000         # top_n_songs=1000 で実行
     python main.py -s 2 -n 100     # Step2以降、top_n_songs=100
 
 ステップ一覧:
-    Step 1   : 曲リスト取得（kworb.net）
-    Step 2   : 週次データ取得
-    Step 3   : 紅白出場者リスト取得（Wikipedia）
-    Step 3.5 : Googleトレンドデータ取得（pytrends）
-    Step 4   : 学習データ作成
-    Step 5   : モデル学習
-    Step 6   : SHAP分析
-    Step 7   : 2025年予測
+    Step 1 : 曲リスト取得（kworb.net）
+    Step 2 : 週次データ取得
+    Step 3 : 紅白出場者リスト取得（Wikipedia）
+    Step 4 : Googleトレンドデータ取得（pytrends）
+    Step 5 : 学習データ作成
+    Step 6 : モデル学習
+    Step 7 : SHAP分析
+    Step 8 : 2025年予測
 """
 
 import argparse
@@ -29,13 +29,13 @@ from typing import Any
 
 from src.collectors.step1_get_song_list import Step1Pipeline
 from src.collectors.step2_get_weekly_data import Step2Pipeline
-from src.collectors.step3_5_get_google_trends import Step35Pipeline
 from src.collectors.step3_get_kouhaku_artists import Step3Pipeline
+from src.collectors.step4_get_google_trends import Step4Pipeline
 from src.core.pipeline import load_config
-from src.modeling.step5_train_model import Step5Pipeline
-from src.modeling.step6_shap_analysis import Step6Pipeline
-from src.prediction.step7_predict_2025 import Step7Pipeline
-from src.processing.step4_create_learning_data import Step4Pipeline
+from src.modeling.step6_train_model import Step6Pipeline
+from src.modeling.step7_shap_analysis import Step7Pipeline
+from src.prediction.step8_predict_2025 import Step8Pipeline
+from src.processing.step5_create_learning_data import Step5Pipeline
 
 
 # パイプライン定義（実行順序はSTEP_ORDERで制御）
@@ -43,15 +43,15 @@ PIPELINES = {
     1: ("Step 1: 曲リスト取得", Step1Pipeline),
     2: ("Step 2: 週次データ取得", Step2Pipeline),
     3: ("Step 3: 紅白出場者リスト取得", Step3Pipeline),
-    3.5: ("Step 3.5: Googleトレンド取得", Step35Pipeline),
-    4: ("Step 4: 学習データ作成", Step4Pipeline),
-    5: ("Step 5: モデル学習", Step5Pipeline),
-    6: ("Step 6: SHAP分析", Step6Pipeline),
-    7: ("Step 7: 2025年予測", Step7Pipeline),
+    4: ("Step 4: Googleトレンド取得", Step4Pipeline),
+    5: ("Step 5: 学習データ作成", Step5Pipeline),
+    6: ("Step 6: モデル学習", Step6Pipeline),
+    7: ("Step 7: SHAP分析", Step7Pipeline),
+    8: ("Step 8: 2025年予測", Step8Pipeline),
 }
 
-# 実行順序（floatキー対応）
-STEP_ORDER = [1, 2, 3, 3.5, 4, 5, 6, 7]
+# 実行順序
+STEP_ORDER = [1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def parse_args() -> argparse.Namespace:

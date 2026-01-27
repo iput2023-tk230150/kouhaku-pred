@@ -252,10 +252,6 @@ class Step3Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 3: 紅白出場者リスト取得")
-        print("=" * 60)
-
         output_file = self.get_output_files()[0]
         current_year = datetime.now().year
 

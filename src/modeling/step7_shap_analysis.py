@@ -1,5 +1,5 @@
 """
-Step 6: SHAP値分析スクリプト
+Step 7: SHAP値分析スクリプト
 ================================
 学習済みモデルの解釈可能性を高めるためのSHAP値分析
 
@@ -26,8 +26,8 @@ import shap
 from src.core.pipeline import DataPipeline, load_config
 
 
-class Step6Pipeline(DataPipeline):
-    """Step6: SHAP値分析パイプライン"""
+class Step7Pipeline(DataPipeline):
+    """Step7: SHAP値分析パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
@@ -78,10 +78,6 @@ class Step6Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 6: SHAP値分析")
-        print("=" * 60)
-
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
@@ -254,7 +250,7 @@ def main():
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
-    pipeline = Step6Pipeline(config, data_dir)
+    pipeline = Step7Pipeline(config, data_dir)
     success = pipeline.execute()
 
     sys.exit(0 if success else 1)

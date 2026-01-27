@@ -1,5 +1,5 @@
 """
-Step 5: モデル学習スクリプト
+Step 6: モデル学習スクリプト
 ================================
 LightGBMを使用して紅白出場予測モデルを学習
 
@@ -39,8 +39,8 @@ from sklearn.metrics import (
 from src.core.pipeline import DataPipeline, load_config
 
 
-class Step5Pipeline(DataPipeline):
-    """Step5: モデル学習パイプライン"""
+class Step6Pipeline(DataPipeline):
+    """Step6: モデル学習パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
@@ -89,10 +89,6 @@ class Step5Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 5: モデル学習")
-        print("=" * 60)
-
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
@@ -392,7 +388,7 @@ def main():
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
-    pipeline = Step5Pipeline(config, data_dir)
+    pipeline = Step6Pipeline(config, data_dir)
     success = pipeline.execute()
 
     sys.exit(0 if success else 1)

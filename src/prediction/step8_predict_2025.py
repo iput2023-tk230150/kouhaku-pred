@@ -1,5 +1,5 @@
 """
-Step 7: 2025年紅白出場者予測スクリプト
+Step 8: 2025年紅白出場者予測スクリプト
 ================================
 学習済みモデルを使用して2025年の紅白出場者を予測
 発表済みの出場者リストとの比較・精度評価も行う
@@ -23,8 +23,8 @@ import pandas as pd
 from src.core.pipeline import DataPipeline, load_config
 
 
-class Step7Pipeline(DataPipeline):
-    """Step7: 2025年予測パイプライン"""
+class Step8Pipeline(DataPipeline):
+    """Step8: 2025年予測パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
@@ -77,10 +77,6 @@ class Step7Pipeline(DataPipeline):
 
     def execute(self) -> bool:
         """パイプライン実行"""
-        print("=" * 60)
-        print("Step 7: 2025年紅白出場者予測")
-        print("=" * 60)
-
         # 依存チェック
         ok, missing = self.check_dependencies()
         if not ok:
@@ -357,7 +353,7 @@ def main():
     config = load_config()
     data_dir = Path(__file__).parent.parent.parent / config["paths"]["data_dir"]
 
-    pipeline = Step7Pipeline(config, data_dir)
+    pipeline = Step8Pipeline(config, data_dir)
     success = pipeline.execute()
 
     sys.exit(0 if success else 1)

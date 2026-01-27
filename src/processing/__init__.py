@@ -1,9 +1,9 @@
 """
 Processing モジュール
 =====================
-データ加工パイプライン（Step4）
+データ加工パイプライン（Step5）
 """
 
-from .step4_create_learning_data import Step4Pipeline
+from .step5_create_learning_data import Step5Pipeline
 
-__all__ = ["Step4Pipeline"]
+__all__ = ["Step5Pipeline"]
