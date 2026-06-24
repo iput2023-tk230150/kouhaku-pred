@@ -80,3 +80,5 @@ data/raw/
 data/processed/
 data/analysis/
 models/
+CLAUDE.md
+.claude
