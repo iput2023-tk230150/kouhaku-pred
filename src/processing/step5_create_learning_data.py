@@ -348,9 +348,10 @@ class Step5Pipeline(DataPipeline):
         )
         print(yearly)
 
-        print("\n--- Spotifyデータなしの紅白出場者（2024年） ---")
+        latest_year = int(df_learning["year"].max())
+        print(f"\n--- Spotifyデータなしの紅白出場者（{latest_year}年） ---")
         no_spotify_appeared = df_learning[
-            (df_learning["year"] == 2024)
+            (df_learning["year"] == latest_year)
             & (df_learning["appeared"] == 1)
             & (df_learning["has_spotify_data"] == 0)
         ]["artist"].tolist()

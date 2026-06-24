@@ -200,32 +200,33 @@ class Step7Pipeline(DataPipeline):
         plt.close()
         print(f"  保存: {bar_path}")
 
-        # ========== [7] 個別予測の説明（2024年Top予測） ==========
-        print("\n[7] 2024年予測の個別説明")
+        # ========== [7] 個別予測の説明（確定済み最新年Top予測） ==========
+        latest_year = int(df_with_kouhaku["year"].max())
+        print(f"\n[7] {latest_year}年予測の個別説明")
 
-        df_2024 = df[df["year"] == 2024].copy()
-        if len(df_2024) > 0:
-            X_2024 = df_2024[self.feature_cols]
-            shap_2024 = explainer.shap_values(X_2024)
-            if isinstance(shap_2024, list):
-                shap_2024 = shap_2024[1]
+        df_latest = df[df["year"] == latest_year].copy()
+        if len(df_latest) > 0:
+            X_latest = df_latest[self.feature_cols]
+            shap_latest = explainer.shap_values(X_latest)
+            if isinstance(shap_latest, list):
+                shap_latest = shap_latest[1]
 
             # 予測確率を計算
-            probs = model.predict_proba(X_2024)[:, 1]
-            df_2024["predicted_prob"] = probs
+            probs = model.predict_proba(X_latest)[:, 1]
+            df_latest["predicted_prob"] = probs
 
             # Top5アーティストを表示
-            top5 = df_2024.nlargest(5, "predicted_prob")
+            top5 = df_latest.nlargest(5, "predicted_prob")
 
-            print("\n  2024年 予測確率Top5の特徴量寄与:")
+            print(f"\n  {latest_year}年 予測確率Top5の特徴量寄与:")
             for idx, (_, row) in enumerate(top5.iterrows()):
                 print(
                     f"\n  [{idx + 1}] {row['artist']} (確率: {row['predicted_prob']:.3f})"
                 )
 
                 # このアーティストのSHAP値
-                artist_idx = df_2024.index.get_loc(row.name)
-                artist_shap = shap_2024[artist_idx]
+                artist_idx = df_latest.index.get_loc(row.name)
+                artist_shap = shap_latest[artist_idx]
 
                 # 寄与が大きい順にソート
                 sorted_idx = np.argsort(np.abs(artist_shap))[::-1]

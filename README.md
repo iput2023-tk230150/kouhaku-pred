@@ -10,7 +10,7 @@ NHK紅白歌合戦の出場者選考において、最も重要視されてい�
 
 ## データソース
 
-- **Spotifyチャートデータ**: [kworb.net](https://kworb.net/spotify/) (2016-2025年)
+- **Spotifyチャートデータ**: [kworb.net](https://kworb.net/spotify/) (2016-2026年)
   - 日本国内の週次チャートランキング
   - ストリーミング数、チャート滞在週数など
 - **紅白歌合戦出場者**: Wikipedia MediaWiki API
@@ -63,7 +63,7 @@ uv run python -m src.collectors.step4_get_google_trends    # Googleトレンド�
 uv run python -m src.processing.step5_create_learning_data # 学習データ作成
 uv run python -m src.modeling.step6_train_model        # モデル学習
 uv run python -m src.modeling.step7_shap_analysis      # SHAP分析
-uv run python -m src.prediction.step8_predict_2025     # 2025年予測
+uv run python -m src.prediction.step8_predict          # 2026年予測
 ```
 
 ## プロジェクト構成
@@ -110,9 +110,9 @@ Step 6: モデル学習 (LightGBM)
    ↓
 Step 7: SHAP分析
    ↓
-Step 8: 2025年予測
+Step 8: 2026年予測
    ↓
-予測結果 (data/analysis/predictions_2025.csv)
+予測結果 (data/analysis/predictions_2026.csv)
 ```
 
 ## 設定のカスタマイズ
@@ -120,6 +120,7 @@ Step 8: 2025年予測
 `config.toml` で以下を調整できます：
 
 - **target_years**: データ収集対象年
+- **prediction.target_year**: 紅白出場者を予測する対象年
 - **top_n_songs**: Step2の取得曲数制限（テスト時は100推奨、本番はNone）
 - **spotify_defaults**: データ欠損時のデフォルト値
 - **network**: タイムアウト、リクエスト間隔など

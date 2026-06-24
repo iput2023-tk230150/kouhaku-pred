@@ -17,7 +17,7 @@ pytrendsを使用してアーティストのGoogle検索トレンドデータを
 
 審査期間:
 - ビルボードジャパン準拠: 11月第4週木曜日〜翌11月第3週水曜日
-- 例: 2025年紅白 = 2024/11/28〜2025/11/26
+- 例: 紅白開催年の前年11月第4週木曜日〜開催年11月第4週木曜日の前日
 """
 
 import sys
@@ -46,7 +46,7 @@ def get_fiscal_year_period(fiscal_year: int) -> tuple[date, date]:
 
     Returns:
         (開始日, 終了日) のタプル
-        例: fiscal_year=2025 → (2024/11/28, 2025/11/26)
+        例: fiscal_year の前年境界日から当年境界日の前日まで
     """
     # 前年の11月第4週木曜日が開始日
     start_date = get_fiscal_year_boundary(fiscal_year - 1)

@@ -1,16 +1,16 @@
 """
-Step 8: 2025年紅白出場者予測スクリプト
-================================
-学習済みモデルを使用して2025年の紅白出場者を予測
-発表済みの出場者リストとの比較・精度評価も行う
+Step 8: 紅白出場者予測スクリプト
+==============================
+学習済みモデルを使用して設定された対象年の紅白出場者を予測
+発表済みの出場者リストがある場合は比較・精度評価も行う
 
 入力:
 - models/model.pkl: 学習済みモデル
 - data/raw/spotify/jp_yearly_stats.csv: Spotifyデータ
-- data/raw/kouhaku/kouhaku_artists.csv: 紅白出場者リスト（2025年発表済み含む）
+- data/raw/kouhaku/kouhaku_artists.csv: 紅白出場者リスト
 
 出力:
-- data/analysis/predictions_2025.csv: 2025年予測結果
+- data/analysis/predictions_{target_year}.csv: 予測結果
 """
 
 import pickle
@@ -24,13 +24,14 @@ from src.core.pipeline import DataPipeline, load_config
 
 
 class Step8Pipeline(DataPipeline):
-    """Step8: 2025年予測パイプライン"""
+    """Step8: 紅白出場者予測パイプライン"""
 
     def __init__(self, config: dict[str, Any], data_dir: Path):
         super().__init__(config, data_dir)
         self.raw_spotify_dir = data_dir / "raw" / "spotify"
         self.raw_kouhaku_dir = data_dir / "raw" / "kouhaku"
         self.raw_trends_dir = data_dir / "raw" / "google_trends"
+        self.target_year = config["prediction"]["target_year"]
         # models_dirはdata_dirの外（プロジェクトルート直下）
         project_root = data_dir.parent
         self.models_dir = project_root / config["paths"]["models_dir"]
@@ -58,7 +59,7 @@ class Step8Pipeline(DataPipeline):
         ]
 
     def get_output_files(self) -> list[Path]:
-        return [self.analysis_dir / "predictions_2025.csv"]
+        return [self.analysis_dir / f"predictions_{self.target_year}.csv"]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
         model_file = self.models_dir / "model.pkl"
@@ -95,36 +96,40 @@ class Step8Pipeline(DataPipeline):
 
         # Spotifyデータ読み込み
         df_spotify = pd.read_csv(self.raw_spotify_dir / "jp_yearly_stats.csv")
-        df_spotify_2025 = df_spotify[df_spotify["year"] == 2025].copy()
-        print(f"  2025年Spotifyデータ: {len(df_spotify_2025)}アーティスト")
+        df_spotify_target = df_spotify[df_spotify["year"] == self.target_year].copy()
+        print(
+            f"  {self.target_year}年Spotifyデータ: {len(df_spotify_target)}アーティスト"
+        )
 
         # 紅白出場者データ読み込み
         df_kouhaku = pd.read_csv(self.raw_kouhaku_dir / "kouhaku_artists.csv")
         print(f"  紅白出場者データ: {len(df_kouhaku)}件")
 
-        # 2025年発表済み出場者を取得
-        df_kouhaku_2025 = df_kouhaku[df_kouhaku["year"] == 2025].copy()
-        actual_artists_2025 = set(df_kouhaku_2025["artist"].unique())
-        print(f"  2025年発表済み出場者: {len(actual_artists_2025)}組")
+        # 対象年の発表済み出場者を取得
+        df_kouhaku_target = df_kouhaku[df_kouhaku["year"] == self.target_year].copy()
+        actual_artists_target = set(df_kouhaku_target["artist"].unique())
+        print(f"  {self.target_year}年発表済み出場者: {len(actual_artists_target)}組")
 
         # Google Trendsデータ読み込み（存在すれば）
         trends_file = self.raw_trends_dir / "artist_trends.csv"
-        df_trends_2025 = pd.DataFrame()
+        df_trends_target = pd.DataFrame()
         if trends_file.exists():
             df_trends = pd.read_csv(trends_file)
-            df_trends_2025 = df_trends[df_trends["year"] == 2025].copy()
-            print(f"  2025年Trendsデータ: {len(df_trends_2025)}アーティスト")
+            df_trends_target = df_trends[df_trends["year"] == self.target_year].copy()
+            print(
+                f"  {self.target_year}年Trendsデータ: {len(df_trends_target)}アーティスト"
+            )
             # トレンド特徴量を使用
             for col in self.trends_feature_cols:
-                if col in df_trends_2025.columns and col not in self.feature_cols:
+                if col in df_trends_target.columns and col not in self.feature_cols:
                     self.feature_cols.append(col)
         print(f"  使用特徴量: {len(self.feature_cols)}個")
 
         # ========== [2] 候補者データ作成 ==========
         print("\n[2] 候補者データ作成")
 
-        # 2025年のSpotifyアーティスト + 過去の紅白出場者
-        spotify_artists = set(df_spotify_2025["artist"].unique())
+        # 対象年のSpotifyアーティスト + 過去の紅白出場者
+        spotify_artists = set(df_spotify_target["artist"].unique())
         kouhaku_artists = set(df_kouhaku["artist"].unique())
         all_candidates = spotify_artists | kouhaku_artists
 
@@ -137,10 +142,10 @@ class Step8Pipeline(DataPipeline):
 
         candidates = []
         for artist in all_candidates:
-            row = {"artist": artist, "year": 2025}
+            row = {"artist": artist, "year": self.target_year}
 
             # Spotify特徴量
-            spotify_row = df_spotify_2025[df_spotify_2025["artist"] == artist]
+            spotify_row = df_spotify_target[df_spotify_target["artist"] == artist]
             if len(spotify_row) > 0:
                 spotify_row = spotify_row.iloc[0]
                 row["weeks_on_chart"] = spotify_row["weeks_on_chart"]
@@ -162,13 +167,17 @@ class Step8Pipeline(DataPipeline):
 
             # 紅白履歴特徴量
             artist_kouhaku = df_kouhaku[df_kouhaku["artist"] == artist]
-            past_appearances = len(artist_kouhaku[artist_kouhaku["year"] < 2025])
-            prev_year_appeared = 1 if 2024 in artist_kouhaku["year"].values else 0
+            past_appearances = len(
+                artist_kouhaku[artist_kouhaku["year"] < self.target_year]
+            )
+            prev_year_appeared = (
+                1 if (self.target_year - 1) in artist_kouhaku["year"].values else 0
+            )
 
             # 連続出場年数
             years = sorted(artist_kouhaku["year"].values)
             consecutive = 0
-            for y in range(2024, 2019, -1):  # 2024から遡る
+            for y in range(self.target_year - 1, self.target_year - 6, -1):
                 if y in years:
                     consecutive += 1
                 else:
@@ -179,8 +188,8 @@ class Step8Pipeline(DataPipeline):
             row["consecutive_years"] = consecutive
 
             # Google Trends特徴量
-            if len(df_trends_2025) > 0:
-                trends_row = df_trends_2025[df_trends_2025["artist"] == artist]
+            if len(df_trends_target) > 0:
+                trends_row = df_trends_target[df_trends_target["artist"] == artist]
                 if len(trends_row) > 0:
                     trends_row = trends_row.iloc[0]
                     row["trend_avg_interest"] = trends_row["trend_avg_interest"]
@@ -218,13 +227,13 @@ class Step8Pipeline(DataPipeline):
 
         # 実際の出場フラグと紅組・白組を追加
         df_candidates["actual"] = (
-            df_candidates["artist"].isin(actual_artists_2025).astype(int)
+            df_candidates["artist"].isin(actual_artists_target).astype(int)
         )
 
         # 紅組・白組情報を追加
         artist_to_group = {}
-        if "group" in df_kouhaku_2025.columns:
-            for _, row in df_kouhaku_2025.iterrows():
+        if "group" in df_kouhaku_target.columns:
+            for _, row in df_kouhaku_target.iterrows():
                 artist_to_group[row["artist"]] = row.get("group")
         df_candidates["group"] = df_candidates["artist"].map(artist_to_group)
 
@@ -236,7 +245,7 @@ class Step8Pipeline(DataPipeline):
         print(f"\n  出場予測アーティスト: {len(df_predicted)}組（上位{top_n}組）")
 
         # 発表済み出場者がいる場合は比較表示
-        if len(actual_artists_2025) > 0:
+        if len(actual_artists_target) > 0:
             print("\n  Top 50 予測確率ランキング（発表済み出場者との比較）:")
             print("-" * 80)
             print(
@@ -278,12 +287,12 @@ class Step8Pipeline(DataPipeline):
             print("  ◎: モデルが出場と予測  S: Spotifyデータあり")
 
         # 結果保存
-        output_path = self.analysis_dir / "predictions_2025.csv"
+        output_path = self.analysis_dir / f"predictions_{self.target_year}.csv"
         df_candidates.to_csv(output_path, index=False, encoding="utf-8-sig")
         print(f"\n  予測結果を保存: {output_path}")
 
         # ========== [6] 発表済み出場者の予測順位 ==========
-        if len(actual_artists_2025) > 0:
+        if len(actual_artists_target) > 0:
             print("\n[6] 発表済み出場者の予測順位")
             df_actual = df_candidates[df_candidates["actual"] == 1].copy()
             df_actual = df_actual.sort_values("pred_rank")
@@ -335,14 +344,14 @@ class Step8Pipeline(DataPipeline):
             )
 
         # ========== [8] 統計情報 ==========
-        print(f"\n[{'8' if len(actual_artists_2025) > 0 else '6'}] 統計情報")
+        print(f"\n[{'8' if len(actual_artists_target) > 0 else '6'}] 統計情報")
         print(f"  出場予測数: {len(df_predicted)}")
         print(f"  うちSpotifyデータあり: {int(df_predicted['has_spotify_data'].sum())}")
         print(f"  うち紅白経験者: {int((df_predicted['past_appearances'] > 0).sum())}")
         print(f"  うち前年出場者: {int(df_predicted['prev_year_appeared'].sum())}")
 
         print(f"\n{'=' * 60}")
-        print("Step 7 完了")
+        print("Step 8 完了")
         print("=" * 60)
 
         return True

@@ -319,17 +319,18 @@ class Step2Pipeline(DataPipeline):
         print(f"保存: {stats_file}")
 
         # サマリー表示
+        latest_year = int(yearly_stats["year"].max())
         print(f"\n{'=' * 60}")
-        print("年別・アーティスト別 ストリーム数ランキング（2024年）")
+        print(f"年別・アーティスト別 ストリーム数ランキング（{latest_year}年）")
         print("=" * 60)
 
-        rank_2024 = (
-            yearly_stats[yearly_stats["year"] == 2024]
+        latest_rank = (
+            yearly_stats[yearly_stats["year"] == latest_year]
             .sort_values("total_streams", ascending=False)
             .head(20)
         )
 
-        for _, row in rank_2024.iterrows():
+        for _, row in latest_rank.iterrows():
             streams = row["total_streams"]
             streams_str = f"{streams:,.0f}" if pd.notna(streams) else "N/A"
             print(

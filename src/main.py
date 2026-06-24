@@ -19,10 +19,11 @@ Step1-8を順次実行し、データ収集からモデル学習・予測まで�
     Step 5 : 学習データ作成
     Step 6 : モデル学習
     Step 7 : SHAP分析
-    Step 8 : 2025年予測
+    Step 8 : 紅白出場者予測
 """
 
 import argparse
+from importlib import import_module
 import sys
 from pathlib import Path
 from typing import Any
@@ -32,26 +33,36 @@ from src.collectors.step2_get_weekly_data import Step2Pipeline
 from src.collectors.step3_get_kouhaku_artists import Step3Pipeline
 from src.collectors.step4_get_google_trends import Step4Pipeline
 from src.core.pipeline import load_config
-from src.modeling.step6_train_model import Step6Pipeline
-from src.modeling.step7_shap_analysis import Step7Pipeline
-from src.prediction.step8_predict_2025 import Step8Pipeline
+from src.prediction.step8_predict import Step8Pipeline
 from src.processing.step5_create_learning_data import Step5Pipeline
 
+PipelineClass = Any
+PipelineRef = PipelineClass | str
 
 # パイプライン定義（実行順序はSTEP_ORDERで制御）
-PIPELINES = {
+PIPELINES: dict[int, tuple[str, PipelineRef]] = {
     1: ("Step 1: 曲リスト取得", Step1Pipeline),
     2: ("Step 2: 週次データ取得", Step2Pipeline),
     3: ("Step 3: 紅白出場者リスト取得", Step3Pipeline),
     4: ("Step 4: Googleトレンド取得", Step4Pipeline),
     5: ("Step 5: 学習データ作成", Step5Pipeline),
-    6: ("Step 6: モデル学習", Step6Pipeline),
-    7: ("Step 7: SHAP分析", Step7Pipeline),
-    8: ("Step 8: 2025年予測", Step8Pipeline),
+    6: ("Step 6: モデル学習", "src.modeling.step6_train_model:Step6Pipeline"),
+    7: ("Step 7: SHAP分析", "src.modeling.step7_shap_analysis:Step7Pipeline"),
+    8: ("Step 8: 紅白出場者予測", Step8Pipeline),
 }
 
 # 実行順序
 STEP_ORDER = [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+def resolve_pipeline_class(pipeline_ref: PipelineRef) -> PipelineClass:
+    """パイプラインクラスを取得"""
+    if not isinstance(pipeline_ref, str):
+        return pipeline_ref
+
+    module_name, class_name = pipeline_ref.split(":", maxsplit=1)
+    module = import_module(module_name)
+    return getattr(module, class_name)
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,7 +89,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_steps_to_execute(args: argparse.Namespace) -> list[int | float]:
+def get_steps_to_execute(args: argparse.Namespace) -> list[int]:
     """実行するステップのリストを取得"""
     start = args.start or min(STEP_ORDER)
     end = args.end or max(STEP_ORDER)
@@ -108,7 +119,8 @@ def run_pipeline(
             print(f"\n警告: Step {step_num} は存在しません。スキップします。")
             continue
 
-        step_name, pipeline_class = PIPELINES[step_num]
+        step_name, pipeline_ref = PIPELINES[step_num]
+        pipeline_class = resolve_pipeline_class(pipeline_ref)
 
         print("=" * 70)
         print(f"{step_name}")

@@ -10,7 +10,7 @@ LightGBMを使用して紅白出場予測モデルを学習
 - models/model.pkl: 学習済みモデル
 - data/analysis/feature_importance.csv: 特徴量重要度
 - data/analysis/evaluation_results.csv: 評価結果
-- data/analysis/predictions_2024.csv: 2024年予測結果
+- data/analysis/predictions_{latest_year}.csv: 確定済み最新年の予測結果
 
 評価方法:
 - 時系列CV: 過去5年分のデータで学習し、翌年を予測
@@ -51,6 +51,8 @@ class Step6Pipeline(DataPipeline):
         self.models_dir.mkdir(parents=True, exist_ok=True)
         self.analysis_dir = data_dir / "analysis"
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
+        self.target_year = config["prediction"]["target_year"]
+        self.latest_evaluation_year: int | None = None
 
         # 特徴量カラム（学習に使用）
         self.feature_cols = [
@@ -74,11 +76,12 @@ class Step6Pipeline(DataPipeline):
         self.target_col = "appeared"
 
     def get_output_files(self) -> list[Path]:
+        latest_year = self.latest_evaluation_year or self.target_year - 1
         return [
             self.models_dir / "model.pkl",
             self.analysis_dir / "feature_importance.csv",
             self.analysis_dir / "evaluation_results.csv",
-            self.analysis_dir / "predictions_2024.csv",
+            self.analysis_dir / f"predictions_{latest_year}.csv",
         ]
 
     def check_dependencies(self) -> tuple[bool, list[str]]:
@@ -126,8 +129,7 @@ class Step6Pipeline(DataPipeline):
         cv_results = []
         train_window = 5  # 過去5年分で学習
 
-        # 予測対象年: 2020〜2024
-        test_years = [y for y in range(2020, 2025) if y in available_years]
+        test_years = [y for y in range(2020, self.target_year) if y in available_years]
         print(f"  予測対象年: {test_years}")
 
         # 各テスト年について評価
@@ -293,21 +295,22 @@ class Step6Pipeline(DataPipeline):
         df_importance.to_csv(importance_path, index=False, encoding="utf-8-sig")
         print(f"\n  特徴量重要度を保存: {importance_path}")
 
-        # ========== [6] 2024年の予測結果詳細 ==========
-        print("\n[6] 2024年の予測結果詳細")
+        # ========== [6] 確定済み最新年の予測結果詳細 ==========
+        latest_year = int(max(available_years))
+        self.latest_evaluation_year = latest_year
+        print(f"\n[6] {latest_year}年の予測結果詳細")
 
-        # 2024年以外で学習し、2024年を予測
-        train_years_for_2024 = [y for y in available_years if y != 2024]
-        df_train_2024 = df[df["year"].isin(train_years_for_2024)]
-        df_test_2024 = df[df["year"] == 2024]
+        train_years_for_latest = [y for y in available_years if y != latest_year]
+        df_train_latest = df[df["year"].isin(train_years_for_latest)]
+        df_test_latest = df[df["year"] == latest_year]
 
-        if len(df_test_2024) > 0:
-            X_train_2024 = df_train_2024[self.feature_cols]
-            y_train_2024 = df_train_2024[self.target_col]
-            X_test_2024 = df_test_2024[self.feature_cols]
-            y_test_2024 = df_test_2024[self.target_col]
+        if len(df_test_latest) > 0:
+            X_train_latest = df_train_latest[self.feature_cols]
+            y_train_latest = df_train_latest[self.target_col]
+            X_test_latest = df_test_latest[self.feature_cols]
+            y_test_latest = df_test_latest[self.target_col]
 
-            model_2024 = lgb.LGBMClassifier(  # type: ignore[attr-defined]
+            model_latest = lgb.LGBMClassifier(  # type: ignore[attr-defined]
                 objective="binary",
                 n_estimators=100,
                 learning_rate=0.1,
@@ -318,28 +321,28 @@ class Step6Pipeline(DataPipeline):
                 random_state=42,
                 verbose=-1,
             )
-            model_2024.fit(X_train_2024, y_train_2024)
+            model_latest.fit(X_train_latest, y_train_latest)
 
-            y_prob_2024 = model_2024.predict_proba(X_test_2024)[:, 1]
+            y_prob_latest = model_latest.predict_proba(X_test_latest)[:, 1]
 
-            df_pred_2024 = df_test_2024[["artist", "artist_normalized"]].copy()
-            df_pred_2024["actual"] = y_test_2024.values
-            df_pred_2024["predicted_prob"] = y_prob_2024
+            df_pred_latest = df_test_latest[["artist", "artist_normalized"]].copy()
+            df_pred_latest["actual"] = y_test_latest.values
+            df_pred_latest["predicted_prob"] = y_prob_latest
 
             # 確率順にソート
-            df_pred_2024 = df_pred_2024.sort_values(
+            df_pred_latest = df_pred_latest.sort_values(
                 "predicted_prob", ascending=False
             ).reset_index(drop=True)
 
             # 上位44組を出場予測とする（紅白の出場枠数）
             top_n = 44
-            df_pred_2024["predicted"] = 0
-            df_pred_2024.loc[: top_n - 1, "predicted"] = 1
-            df_pred_2024["rank"] = range(1, len(df_pred_2024) + 1)
+            df_pred_latest["predicted"] = 0
+            df_pred_latest.loc[: top_n - 1, "predicted"] = 1
+            df_pred_latest["rank"] = range(1, len(df_pred_latest) + 1)
 
             # 予測出場者リスト（上位44組）
             print(f"\n  予測出場者リスト（上位{top_n}組）:")
-            predicted_artists = df_pred_2024.head(top_n)
+            predicted_artists = df_pred_latest.head(top_n)
             hit_count = 0
             for _, row in predicted_artists.iterrows():
                 actual_mark = "◯" if row["actual"] == 1 else "×"
@@ -351,7 +354,7 @@ class Step6Pipeline(DataPipeline):
                 )
 
             # 的中率サマリー
-            actual_appeared = int(y_test_2024.sum())
+            actual_appeared = int(y_test_latest.sum())
             print("\n  的中率サマリー:")
             print(f"    予測出場: {top_n}組")
             print(f"    実際出場: {actual_appeared}組")
@@ -362,22 +365,22 @@ class Step6Pipeline(DataPipeline):
             )
 
             # 予測結果保存
-            pred_path = self.analysis_dir / "predictions_2024.csv"
-            df_pred_2024.to_csv(pred_path, index=False, encoding="utf-8-sig")
-            print(f"\n  2024年予測結果を保存: {pred_path}")
+            pred_path = self.analysis_dir / f"predictions_{latest_year}.csv"
+            df_pred_latest.to_csv(pred_path, index=False, encoding="utf-8-sig")
+            print(f"\n  {latest_year}年予測結果を保存: {pred_path}")
 
             # 分類レポート（上位44組ベース）
-            print(f"\n  分類レポート (2024年, 上位{top_n}組を出場予測):")
+            print(f"\n  分類レポート ({latest_year}年, 上位{top_n}組を出場予測):")
             print(
                 classification_report(
-                    df_pred_2024["actual"],
-                    df_pred_2024["predicted"],
+                    df_pred_latest["actual"],
+                    df_pred_latest["predicted"],
                     target_names=["非出場", "出場"],
                 )
             )
 
         print(f"\n{'=' * 60}")
-        print("Step 5 完了")
+        print("Step 6 完了")
         print("=" * 60)
 
         return True
