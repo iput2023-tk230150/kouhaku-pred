@@ -66,6 +66,16 @@ uv run python -m src.modeling.step7_shap_analysis      # SHAP分析
 uv run python -m src.prediction.step8_predict          # 2026年予測
 ```
 
+### テスト
+
+データ処理のコア関数（数値パース・会計年度境界の算出など）のユニットテストを `tests/` に配置しています。リファクタリング時の回帰検出に使用します。
+
+```bash
+uv run pytest                                                 # 全テスト実行
+uv run pytest tests/test_core_functions.py::TestCleanNumber  # 単一クラス
+uv run pytest -k clean_number                                 # 名前で絞り込み
+```
+
 ## プロジェクト構成
 
 ```
@@ -79,6 +89,7 @@ kouhaku-pred/
 │   └── prediction/          # 最終予測（Step 8）
 │
 ├── utils/                   # 正規化・マッピングユーティリティ
+├── tests/                   # ユニットテスト（pytest）
 ├── models/                  # 学習済みモデル（model.pkl）
 ├── tmp/                     # ツール出力用一時ファイル
 ├── config.toml              # 設定ファイル
